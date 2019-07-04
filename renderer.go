@@ -7,7 +7,7 @@ import (
 func render(model *rawModel) {
 	gl.BindVertexArray(model.vaoID)
 	gl.EnableVertexAttribArray(0)
-	gl.DrawArrays(gl.TRIANGLES, 0, int32(model.vertextCount))
+	gl.DrawElements(gl.TRIANGLES, int32(model.vertextCount), gl.UNSIGNED_INT, gl.Ptr(nil))
 	gl.DisableVertexArrayAttrib(model.vaoID, 0)
 	gl.BindVertexArray(0)
 }

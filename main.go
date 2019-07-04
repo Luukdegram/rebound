@@ -19,6 +19,9 @@ var (
 		-0.5, -0.5, 0, // left
 		0.5, -0.5, 0, // right
 	}
+	indices = []uint32{
+		0, 1, 2,
+	}
 )
 
 func init() {
@@ -42,7 +45,7 @@ func draw(window *glfw.Window, program uint32) {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	gl.UseProgram(program)
 
-	model := loadToVAO(triangle)
+	model := loadToVAO(triangle, indices)
 	render(model)
 	glfw.PollEvents()
 	window.SwapBuffers()
