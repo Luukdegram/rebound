@@ -1,8 +1,13 @@
 package main
 
 import (
+	"go/build"
 	"log"
+	"os"
 	"runtime"
+
+	"github.com/luukdegram/rebound/models"
+	"github.com/luukdegram/rebound/shaders"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
@@ -22,33 +27,55 @@ var (
 	indices = []uint32{
 		0, 1, 2,
 	}
+	textureCoords = []float32{
+		0, 0,
+		0, 1,
+		1, 1,
+	}
 )
 
 func init() {
 	// This is needed to arrange that main() runs on main thread.
 	runtime.LockOSThread()
+
+	dir, err := importPathToDir("github.com/luukdegram/rebound/assets/")
+	if err != nil {
+		log.Fatalln("Unable to find Go package in your GOPATH, it's needed to load assets:", err)
+	}
+	err = os.Chdir(dir)
+	if err != nil {
+		log.Panicln("os.Chdir:", err)
+	}
 }
 
 func main() {
 	window := initGlfw()
 	defer glfw.Terminate()
 
-	program := initOpenGL()
+	initOpenGL()
+	renderer := new(Renderer)
+	model := loadToVAO(triangle, textureCoords, indices)
+	texture, err := loadTexture("textures/square.png")
+	if err != nil {
+		panic(err)
+	}
+	modelTexture := models.NewModelTexture(texture)
+	texturedModel := models.NewTexturedModel(model, modelTexture)
 
+	shader, err := shaders.NewStaticShader("shaders/vertexShader.vert", "shaders/fragmentShader.frag")
+	if err != nil {
+		panic(err)
+	}
 	for !window.ShouldClose() {
-		draw(window, program)
+		renderer.Prepare()
+		shader.ShaderProgram.Start()
+		renderer.Render(texturedModel)
+		shader.ShaderProgram.Stop()
+
+		glfw.PollEvents()
+		window.SwapBuffers()
 	}
 	cleanUp()
-}
-
-func draw(window *glfw.Window, program uint32) {
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-	gl.UseProgram(program)
-
-	model := loadToVAO(triangle, indices)
-	render(model)
-	glfw.PollEvents()
-	window.SwapBuffers()
 }
 
 func initGlfw() *glfw.Window {
@@ -72,26 +99,22 @@ func initGlfw() *glfw.Window {
 	return window
 }
 
-// initOpenGL initializes OpenGL and returns an intiialized program.
-func initOpenGL() uint32 {
+// initOpenGL initializes OpenGL
+func initOpenGL() {
 	if err := gl.Init(); err != nil {
 		panic(err)
 	}
 	version := gl.GoStr(gl.GetString(gl.VERSION))
 	log.Println("OpenGL version", version)
+}
 
-	vertexShader, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
+// importPathToDir resolves the absolute path from importPath.
+// There doesn't need to be a valid Go package inside that import path,
+// but the directory must exist.
+func importPathToDir(importPath string) (string, error) {
+	p, err := build.Import(importPath, "", build.FindOnly)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	fragmentShader, err := compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER)
-	if err != nil {
-		panic(err)
-	}
-
-	prog := gl.CreateProgram()
-	gl.AttachShader(prog, vertexShader)
-	gl.AttachShader(prog, fragmentShader)
-	gl.LinkProgram(prog)
-	return prog
+	return p.Dir, nil
 }
