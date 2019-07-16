@@ -30,7 +30,8 @@ func NewStaticShader(vertexFile string, fragmentFile string) (*StaticShader, err
 		return nil, err
 	}
 
-	ss.ShaderProgram.BindAttribute(0, "location")
+	ss.ShaderProgram.BindAttribute(0, "position")
+	ss.ShaderProgram.BindAttribute(1, "textureCoords")
 	return ss, nil
 }
 

@@ -6,11 +6,11 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/luukdegram/rebound/display"
 	"github.com/luukdegram/rebound/models"
 	"github.com/luukdegram/rebound/shaders"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/go-gl/glfw/v3.2/glfw"
 )
 
 const (
@@ -20,17 +20,21 @@ const (
 
 var (
 	triangle = []float32{
-		0, 0.5, 0, // top
-		-0.5, -0.5, 0, // left
-		0.5, -0.5, 0, // right
+		-0.5, 0.5, 0, // V1
+		-0.5, -0.5, 0, // V2
+		0.5, -0.5, 0, // V3
+		0.5, 0.5, 0, // V4
+
 	}
 	indices = []uint32{
-		0, 1, 2,
+		0, 1, 3, //Top left Triangle
+		3, 1, 2, //Bottom right Triangle
 	}
 	textureCoords = []float32{
-		0, 0,
-		0, 1,
-		1, 1,
+		0, 0, //V0
+		0, 1, //V1
+		1, 1, //V2
+		1, 0, //V3
 	}
 )
 
@@ -49,12 +53,17 @@ func init() {
 }
 
 func main() {
-	window := initGlfw()
-	defer glfw.Terminate()
+	window := display.Manager(display.Default())
+
+	err := window.Init(width, height, "Rebound Engine")
+	if err != nil {
+		panic(err)
+	}
+	defer window.Close()
 
 	initOpenGL()
 	renderer := new(Renderer)
-	model := loadToVAO(triangle, textureCoords, indices)
+	model := LoadToVAO(triangle, textureCoords, indices)
 	texture, err := loadTexture("textures/square.png")
 	if err != nil {
 		panic(err)
@@ -72,31 +81,10 @@ func main() {
 		renderer.Render(texturedModel)
 		shader.ShaderProgram.Stop()
 
-		glfw.PollEvents()
-		window.SwapBuffers()
+		window.Update()
 	}
+	shader.ShaderProgram.CleanUp()
 	cleanUp()
-}
-
-func initGlfw() *glfw.Window {
-	err := glfw.Init()
-	if err != nil {
-		panic(err)
-	}
-
-	glfw.WindowHint(glfw.Resizable, glfw.False)
-	glfw.WindowHint(glfw.ContextVersionMajor, 4) // OR 2
-	glfw.WindowHint(glfw.ContextVersionMinor, 1)
-	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
-	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
-
-	window, err := glfw.CreateWindow(width, height, "Testing", nil, nil)
-	if err != nil {
-		panic(err)
-	}
-
-	window.MakeContextCurrent()
-	return window
 }
 
 // initOpenGL initializes OpenGL

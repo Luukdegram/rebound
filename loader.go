@@ -16,9 +16,12 @@ var (
 	ids []uint32
 )
 
-func loadToVAO(points []float32, textureCoords []float32, indices []uint32) *models.RawModel {
-	id := createVAO(points)
+//LoadToVAO loads a model to the gpu
+func LoadToVAO(points []float32, textureCoords []float32, indices []uint32) *models.RawModel {
+	id := createVAO()
 	bindIndicesBuffer(indices)
+	storeDataInAttributeList(0, 3, points)
+	storeDataInAttributeList(1, 2, textureCoords)
 	unbindVAO()
 	return &models.RawModel{VaoID: id, VertextCount: len(indices)}
 }
@@ -62,24 +65,22 @@ func loadTexture(fileName string) (uint32, error) {
 	return texture, nil
 }
 
-func createVAO(points []float32) uint32 {
-	var vbo uint32
-	gl.GenBuffers(1, &vbo)
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, 4*len(points), gl.Ptr(points), gl.STATIC_DRAW)
-
+func createVAO() uint32 {
 	var vao uint32
 	gl.GenVertexArrays(1, &vao)
 	gl.BindVertexArray(vao)
-	gl.EnableVertexAttribArray(0)
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 0, nil)
-
-	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
-
 	ids = append(ids, vao)
-	ids = append(ids, vbo)
-
 	return vao
+}
+
+func storeDataInAttributeList(index uint32, coordinateSize int32, data []float32) {
+	var vbo uint32
+	gl.GenBuffers(1, &vbo)
+	ids = append(ids, vbo)
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+	gl.BufferData(gl.ARRAY_BUFFER, 4*len(data), gl.Ptr(data), gl.STATIC_DRAW)
+	gl.VertexAttribPointer(index, coordinateSize, gl.FLOAT, false, 0, nil)
+	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 }
 
 func bindIndicesBuffer(indices []uint32) {
