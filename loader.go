@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	ids []uint32
+	ids      []uint32
+	textures []uint32
 )
 
 //LoadToVAO loads a model to the gpu
@@ -44,12 +45,12 @@ func loadTexture(fileName string) (uint32, error) {
 
 	var texture uint32
 	gl.GenTextures(1, &texture)
-	gl.ActiveTexture(gl.TEXTURE0)
+	//gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, texture)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
 	gl.TexImage2D(
 		gl.TEXTURE_2D,
 		0,
@@ -61,7 +62,7 @@ func loadTexture(fileName string) (uint32, error) {
 		gl.UNSIGNED_BYTE,
 		gl.Ptr(rgba.Pix))
 
-	ids = append(ids, texture)
+	textures = append(textures, texture)
 	return texture, nil
 }
 
@@ -78,7 +79,7 @@ func storeDataInAttributeList(index uint32, coordinateSize int32, data []float32
 	gl.GenBuffers(1, &vbo)
 	ids = append(ids, vbo)
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, 4*len(data), gl.Ptr(data), gl.STATIC_DRAW)
+	gl.BufferData(gl.ARRAY_BUFFER, 3*len(data), gl.Ptr(data), gl.STATIC_DRAW)
 	gl.VertexAttribPointer(index, coordinateSize, gl.FLOAT, false, 0, nil)
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 }
@@ -98,5 +99,9 @@ func unbindVAO() {
 func cleanUp() {
 	for _, id := range ids {
 		gl.DeleteVertexArrays(1, &id)
+	}
+
+	for _, id := range textures {
+		gl.DeleteTextures(1, &id)
 	}
 }

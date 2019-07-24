@@ -55,6 +55,9 @@ func NewShaderProgram(vertexFile string, fragmentFile string) (*ShaderProgram, e
 	gl.LinkProgram(s.ID)
 	gl.ValidateProgram(s.ID)
 
+	gl.DeleteShader(s.vertexShaderID)
+	gl.DeleteShader(s.fragmentShaderID)
+
 	return s, nil
 }
 
@@ -73,8 +76,6 @@ func (sp *ShaderProgram) CleanUp() {
 	sp.Stop()
 	gl.DetachShader(sp.ID, sp.vertexShaderID)
 	gl.DetachShader(sp.ID, sp.fragmentShaderID)
-	gl.DeleteShader(sp.vertexShaderID)
-	gl.DeleteShader(sp.fragmentShaderID)
 	gl.DeleteProgram(sp.ID)
 }
 
