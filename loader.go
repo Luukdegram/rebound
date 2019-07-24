@@ -5,15 +5,16 @@ import (
 	"image"
 	"image/draw"
 	"os"
+	"rebound/models"
 
 	_ "image/png"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/luukdegram/rebound/models"
 )
 
 var (
-	ids      []uint32
+	vaos     []uint32
+	vbos     []uint32
 	textures []uint32
 )
 
@@ -45,7 +46,7 @@ func loadTexture(fileName string) (uint32, error) {
 
 	var texture uint32
 	gl.GenTextures(1, &texture)
-	//gl.ActiveTexture(gl.TEXTURE0)
+	gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, texture)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
@@ -70,16 +71,16 @@ func createVAO() uint32 {
 	var vao uint32
 	gl.GenVertexArrays(1, &vao)
 	gl.BindVertexArray(vao)
-	ids = append(ids, vao)
+	vbos = append(vaos, vao)
 	return vao
 }
 
 func storeDataInAttributeList(index uint32, coordinateSize int32, data []float32) {
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
-	ids = append(ids, vbo)
+	vbos = append(vbos, vbo)
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, 3*len(data), gl.Ptr(data), gl.STATIC_DRAW)
+	gl.BufferData(gl.ARRAY_BUFFER, 4*len(data), gl.Ptr(data), gl.STATIC_DRAW)
 	gl.VertexAttribPointer(index, coordinateSize, gl.FLOAT, false, 0, nil)
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 }
@@ -87,7 +88,7 @@ func storeDataInAttributeList(index uint32, coordinateSize int32, data []float32
 func bindIndicesBuffer(indices []uint32) {
 	var ebo uint32
 	gl.GenBuffers(1, &ebo)
-	ids = append(ids, ebo)
+	vbos = append(vbos, ebo)
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
 	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, 4*len(indices), gl.Ptr(indices), gl.STATIC_DRAW)
 }
@@ -97,8 +98,12 @@ func unbindVAO() {
 }
 
 func cleanUp() {
-	for _, id := range ids {
+	for _, id := range vaos {
 		gl.DeleteVertexArrays(1, &id)
+	}
+
+	for _, id := range vbos {
+		gl.DeleteBuffers(1, &id)
 	}
 
 	for _, id := range textures {

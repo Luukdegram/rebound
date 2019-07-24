@@ -4,11 +4,11 @@ import (
 	"go/build"
 	"log"
 	"os"
+	"rebound/display"
 	"runtime"
 
-	"github.com/luukdegram/rebound/display"
-	"github.com/luukdegram/rebound/models"
-	"github.com/luukdegram/rebound/shaders"
+	"rebound/models"
+	"rebound/shaders"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
@@ -42,7 +42,7 @@ func init() {
 	// This is needed to arrange that main() runs on main thread.
 	runtime.LockOSThread()
 
-	dir, err := importPathToDir("github.com/luukdegram/rebound/assets/")
+	dir, err := importPathToDir("rebound/assets/")
 	if err != nil {
 		log.Fatalln("Unable to find Go package in your GOPATH, it's needed to load assets:", err)
 	}

@@ -1,8 +1,9 @@
 package main
 
 import (
+	"rebound/models"
+
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/luukdegram/rebound/models"
 )
 
 //Renderer can render models and setups the canvas
