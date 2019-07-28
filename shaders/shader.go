@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 //ShaderProgram is a generic shader program
@@ -14,29 +15,11 @@ type ShaderProgram struct {
 	ID               uint32
 	vertexShaderID   uint32
 	fragmentShaderID uint32
-}
-
-//StaticShader is a shader program that contains a static shader
-type StaticShader struct {
-	ShaderProgram *ShaderProgram
-}
-
-//NewStaticShader creates a static shader
-func NewStaticShader(vertexFile string, fragmentFile string) (*StaticShader, error) {
-	ss := new(StaticShader)
-	var err error
-	ss.ShaderProgram, err = NewShaderProgram(vertexFile, fragmentFile)
-	if err != nil {
-		return nil, err
-	}
-
-	ss.ShaderProgram.BindAttribute(0, "position")
-	ss.ShaderProgram.BindAttribute(1, "textureCoords")
-	return ss, nil
+	attributes       []string
 }
 
 //NewShaderProgram creates a new shader program given the vertex file and fragment file
-func NewShaderProgram(vertexFile string, fragmentFile string) (*ShaderProgram, error) {
+func NewShaderProgram(vertexFile string, fragmentFile string, attributes ...string) (*ShaderProgram, error) {
 	s := new(ShaderProgram)
 	var err error
 
@@ -52,6 +35,11 @@ func NewShaderProgram(vertexFile string, fragmentFile string) (*ShaderProgram, e
 	s.ID = gl.CreateProgram()
 	gl.AttachShader(s.ID, s.vertexShaderID)
 	gl.AttachShader(s.ID, s.fragmentShaderID)
+
+	for index, value := range attributes {
+		s.BindAttribute(index, value)
+	}
+
 	gl.LinkProgram(s.ID)
 	gl.ValidateProgram(s.ID)
 
@@ -61,18 +49,47 @@ func NewShaderProgram(vertexFile string, fragmentFile string) (*ShaderProgram, e
 	return s, nil
 }
 
+//GetUniformLocation returns the location of the uniform given, returning the OpenGL id as an int32
+func (sp ShaderProgram) GetUniformLocation(name string) int32 {
+	return gl.GetUniformLocation(sp.ID, gl.Str(name+"\x00"))
+}
+
+//LoadFloat loads a uniform float into the shader
+func (sp ShaderProgram) LoadFloat(location int32, value float32) {
+	gl.Uniform1f(int32(location), value)
+}
+
+//LoadVec loads a uniform Vector into the shader
+func (sp ShaderProgram) LoadVec(location int32, value mgl32.Vec3) {
+	gl.Uniform3f(int32(location), value[0], value[1], value[2])
+}
+
+//LoadBool loads a boolean into the shader
+func (sp ShaderProgram) LoadBool(location int32, value bool) {
+	var float float32
+	if value {
+		float = 1
+	}
+	gl.Uniform1f(int32(location), float)
+}
+
+//LoadMat loads a matrix into the shader
+func (sp ShaderProgram) LoadMat(location int32, value mgl32.Mat4) {
+	gl.UniformMatrix4fv(int32(location), 1, false, &value[0])
+}
+
 //Start starts the shader program
-func (sp *ShaderProgram) Start() {
+func (sp ShaderProgram) Start() {
 	gl.UseProgram(sp.ID)
 }
 
 //Stop stops the shader program
-func (sp *ShaderProgram) Stop() {
+func (sp ShaderProgram) Stop() {
 	gl.UseProgram(0)
 }
 
 //CleanUp stops the program, detaches shaders and finally deletes them as well as the program
-func (sp *ShaderProgram) CleanUp() {
+func (sp ShaderProgram) CleanUp() {
 	sp.Stop()
 	gl.DetachShader(sp.ID, sp.vertexShaderID)
 	gl.DetachShader(sp.ID, sp.fragmentShaderID)
@@ -80,8 +97,8 @@ func (sp *ShaderProgram) CleanUp() {
 }
 
 //BindAttribute binds an attribute to the shader program
-func (sp *ShaderProgram) BindAttribute(attrib uint32, name string) {
-	gl.BindAttribLocation(sp.ID, attrib, gl.Str(name+"\x00"))
+func (sp ShaderProgram) BindAttribute(attrib int, name string) {
+	gl.BindAttribLocation(sp.ID, uint32(attrib), gl.Str(name+"\x00"))
 }
 
 //LoadShader loads a shader file from system and compiles it

@@ -1,15 +1,15 @@
-package main
+package rebound
 
 import (
 	"fmt"
 	"image"
 	"image/draw"
 	"os"
-	"rebound/models"
 
-	_ "image/png"
+	_ "image/png" //Import png package to be able to decode png files
 
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/luukdegram/rebound/models"
 )
 
 var (
@@ -28,7 +28,8 @@ func LoadToVAO(points []float32, textureCoords []float32, indices []uint32) *mod
 	return &models.RawModel{VaoID: id, VertextCount: len(indices)}
 }
 
-func loadTexture(fileName string) (uint32, error) {
+//LoadTexture loads a texture into the GPU
+func LoadTexture(fileName string) (uint32, error) {
 	file, err := os.Open(fileName)
 	if err != nil {
 		return 0, err
@@ -97,7 +98,8 @@ func unbindVAO() {
 	gl.BindVertexArray(0)
 }
 
-func cleanUp() {
+//CleanUp removes all loaded data from GPU to free up space.
+func CleanUp() {
 	for _, id := range vaos {
 		gl.DeleteVertexArrays(1, &id)
 	}

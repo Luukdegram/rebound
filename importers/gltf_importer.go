@@ -12,6 +12,5 @@ func LoadGltfModel() {
 	if err != nil {
 		panic(err)
 	}
-
 	fmt.Print(doc.Asset)
 }

@@ -1,6 +1,10 @@
 package display
 
 import (
+	"log"
+	"runtime"
+
+	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
 )
 
@@ -10,17 +14,40 @@ type Manager interface {
 	ShouldClose() bool
 	Close()
 	Update()
+	GetSize() Size
+	RegisterKeyboardHandler(key Key, callback KeyCallback)
 }
+
+//Size holds width and height of a window
+type Size struct {
+	Width  int
+	Height int
+}
+
+//Key is type to hold a keyboard key regardless what window manager is used
+type Key int
+
+var glfwKeyToRKey = map[glfw.Key]Key{
+	glfw.KeyP: KeyP,
+}
+
+//Provide users with a generic set of Keys that will implement the keys of the selected display manager
+const (
+	Key0 Key = iota
+	KeyP
+)
 
 //Default returns the default window manager. In this case GLFW
 func Default() *GLFWManager {
+	runtime.LockOSThread()
 	return NewGLFWManager()
 }
 
 //GLFWManager handles the GLFW window
 type GLFWManager struct {
 	Manager
-	w *glfw.Window
+	w    *glfw.Window
+	size *Size
 }
 
 //NewGLFWManager creates a new GLFWManager struct
@@ -48,7 +75,29 @@ func (g *GLFWManager) Init(width int, height int, title string) error {
 
 	window.MakeContextCurrent()
 	g.w = window
+	g.size = &Size{Width: width, Height: height}
+
+	// initOpenGL initializes OpenGL
+	if err := gl.Init(); err != nil {
+		panic(err)
+	}
+	version := gl.GoStr(gl.GetString(gl.VERSION))
+	log.Println("OpenGL version", version)
+
 	return nil
+}
+
+//KeyCallback is a function that can be triggered when a key is pressed
+type KeyCallback func()
+
+//RegisterKeyboardHandler registers a callback action to a certain key
+func (g *GLFWManager) RegisterKeyboardHandler(key Key, callback KeyCallback) {
+	fn := func(window *glfw.Window, glfwKey glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+		if key == glfwKeyToRKey[glfwKey] && action == glfw.Press {
+			callback()
+		}
+	}
+	g.w.SetKeyCallback(fn)
 }
 
 //ShouldClose returns a boolean wether the window should close or not.
@@ -66,4 +115,9 @@ func (g *GLFWManager) Close() {
 func (g *GLFWManager) Update() {
 	glfw.PollEvents()
 	g.w.SwapBuffers()
+}
+
+//GetSize returns the size of the window
+func (g *GLFWManager) GetSize() Size {
+	return *g.size
 }
