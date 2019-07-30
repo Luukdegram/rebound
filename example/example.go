@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/luukdegram/rebound"
 	"github.com/luukdegram/rebound/display"
+	"github.com/luukdegram/rebound/importers"
 	"github.com/luukdegram/rebound/models"
 	"github.com/luukdegram/rebound/shaders"
 )
@@ -91,7 +93,7 @@ var (
 )
 
 func init() {
-	err := os.Chdir("../assets")
+	err := os.Chdir("assets")
 	if err != nil {
 		log.Panicln("os.Chdir:", err)
 	}
@@ -99,6 +101,8 @@ func init() {
 
 func main() {
 	window := display.Manager(display.Default())
+	doc := importers.LoadGltfModel("gltf_objects/triangle.gltf")
+	fmt.Print(doc.Asset)
 
 	err := window.Init(width, height, "Rebound Engine")
 	if err != nil {
