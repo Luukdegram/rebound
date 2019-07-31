@@ -18,6 +18,13 @@ var (
 	textures []uint32
 )
 
+//Attribute is vbo that stores data such as texture coordinates
+type Attribute struct {
+	Name string
+	Data []float32
+	Size int
+}
+
 //LoadToVAO loads a model to the gpu
 func LoadToVAO(points []float32, textureCoords []float32, indices []uint32) *models.RawModel {
 	id := createVAO()
@@ -25,7 +32,18 @@ func LoadToVAO(points []float32, textureCoords []float32, indices []uint32) *mod
 	storeDataInAttributeList(0, 3, points)
 	storeDataInAttributeList(1, 2, textureCoords)
 	unbindVAO()
-	return &models.RawModel{VaoID: id, VertextCount: len(indices)}
+	return &models.RawModel{VaoID: id, VertexCount: len(indices)}
+}
+
+//LoadToVAO2 test
+func LoadToVAO2(indices []uint32, attributes []Attribute) *models.RawModel {
+	id := createVAO()
+	bindIndicesBuffer(indices)
+	for index, attribute := range attributes {
+		storeDataInAttributeList(index, attribute.Size, attribute.Data)
+	}
+	unbindVAO()
+	return &models.RawModel{VaoID: id, VertexCount: len(indices)}
 }
 
 //LoadTexture loads a texture into the GPU
@@ -72,17 +90,17 @@ func createVAO() uint32 {
 	var vao uint32
 	gl.GenVertexArrays(1, &vao)
 	gl.BindVertexArray(vao)
-	vbos = append(vaos, vao)
+	vaos = append(vaos, vao)
 	return vao
 }
 
-func storeDataInAttributeList(index uint32, coordinateSize int32, data []float32) {
+func storeDataInAttributeList(index int, coordinateSize int, data []float32) {
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
 	vbos = append(vbos, vbo)
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	gl.BufferData(gl.ARRAY_BUFFER, 4*len(data), gl.Ptr(data), gl.STATIC_DRAW)
-	gl.VertexAttribPointer(index, coordinateSize, gl.FLOAT, false, 0, nil)
+	gl.VertexAttribPointer(uint32(index), int32(coordinateSize), gl.FLOAT, false, 0, nil)
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 }
 

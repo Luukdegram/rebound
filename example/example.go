@@ -101,14 +101,15 @@ func init() {
 
 func main() {
 	window := display.Manager(display.Default())
-	doc := importers.LoadGltfModel("gltf_objects/triangle.gltf")
-	fmt.Print(doc.Asset)
 
 	err := window.Init(width, height, "Rebound Engine")
 	if err != nil {
 		panic(err)
 	}
 	defer window.Close()
+
+	meshes := importers.LoadGltfModel("gltf_objects/triangle.gltf")
+	fmt.Println(len(meshes))
 
 	shader, err := shaders.NewShaderProgram("shaders/vertexShader.vert", "shaders/fragmentShader.frag", "position", "textureCoords")
 	if err != nil {
@@ -134,7 +135,7 @@ func main() {
 	})
 
 	for !window.ShouldClose() {
-		entity.Rotate(mgl32.Vec3{1, 1, 1})
+		entity.Rotate(mgl32.Vec3{0.1, 0.1, 0.1})
 
 		transform := rebound.NewTransformationMatrix(entity.Position, entity.Rotation, entity.Scale)
 

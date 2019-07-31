@@ -46,7 +46,7 @@ func (r Renderer) Render(entity *Entity) {
 	gl.EnableVertexAttribArray(0)
 	gl.EnableVertexAttribArray(1)
 	gl.BindTexture(gl.TEXTURE_2D, texturedModel.Texture.ID)
-	gl.DrawElements(gl.TRIANGLES, int32(model.VertextCount), gl.UNSIGNED_INT, gl.Ptr(nil))
+	gl.DrawElements(gl.TRIANGLES, int32(model.VertexCount), gl.UNSIGNED_INT, gl.Ptr(nil))
 	gl.DisableVertexAttribArray(0)
 	gl.DisableVertexAttribArray(1)
 	gl.BindVertexArray(0)

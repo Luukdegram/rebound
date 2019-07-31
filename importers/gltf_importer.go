@@ -3,30 +3,41 @@ package importers
 import (
 	"unsafe"
 
+	"github.com/luukdegram/rebound"
+	"github.com/luukdegram/rebound/models"
+
 	"github.com/qmuntal/gltf"
 )
 
 //LoadGltfModel imports a GLTF file into a model
-func LoadGltfModel(file string) *gltf.Document {
+func LoadGltfModel(file string) []models.RawModel {
 	doc, err := gltf.Open(file)
 	if err != nil {
 		panic(err)
 	}
-
-	indices := make([]uint32, 0, 0)
+	models := make([]models.RawModel, 0)
 
 	for _, mesh := range doc.Meshes {
+		indices := make([]uint32, 0, 0)
+		attributes := make([]rebound.Attribute, 0, 0)
+
 		for _, primitive := range mesh.Primitives {
 			if primitive.Indices != nil {
 				indices = append(indices, loadIndices(doc, int(*primitive.Indices))...)
 			}
 
-			for name, index := range primitive.Attributes {
-				loadAccessorF32(doc, int(index))
+			if len(primitive.Attributes) > 0 {
+				for name, index := range primitive.Attributes {
+					accessor := doc.Accessors[index]
+					attributes = append(attributes, rebound.Attribute{Name: name, Data: loadAccessorF32(doc, int(index)), Size: typeSizes[accessor.Type]})
+				}
 			}
+
 		}
+
+		models = append(models, *rebound.LoadToVAO2(indices, attributes))
 	}
-	return doc
+	return models
 }
 
 func loadIndices(doc *gltf.Document, index int) []uint32 {
