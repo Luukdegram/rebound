@@ -26,6 +26,11 @@ func NewRenderer() *Renderer {
 func (r Renderer) Prepare() {
 	gl.Enable(gl.DEPTH_TEST)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	if r.drawPolygon {
+		gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
+	} else {
+		gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
+	}
 }
 
 //TogglePolygons enables/disables drawing the polygons
@@ -35,12 +40,6 @@ func (r *Renderer) TogglePolygons() {
 
 //Render draws a 3D model into the screen
 func (r Renderer) Render(geometry *Geometry) {
-	if r.drawPolygon {
-		gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
-	} else {
-		gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
-	}
-
 	for _, mesh := range geometry.Meshes {
 		gl.BindVertexArray(mesh.RawModel.VaoID)
 		for index := range mesh.attributes {

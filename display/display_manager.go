@@ -38,8 +38,7 @@ const (
 )
 
 //Default returns the default window manager. In this case GLFW
-func Default() *GLFWManager {
-	runtime.LockOSThread()
+func Default() Manager {
 	return NewGLFWManager()
 }
 
@@ -51,12 +50,14 @@ type GLFWManager struct {
 }
 
 //NewGLFWManager creates a new GLFWManager struct
-func NewGLFWManager() *GLFWManager {
-	return new(GLFWManager)
+func NewGLFWManager() Manager {
+	return &GLFWManager{}
 }
 
 //Init initializes the GLFW window
 func (g *GLFWManager) Init(width int, height int, title string) error {
+	runtime.LockOSThread()
+
 	err := glfw.Init()
 	if err != nil {
 		return err
