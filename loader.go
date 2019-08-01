@@ -18,13 +18,6 @@ var (
 	textures []uint32
 )
 
-//Attribute is vbo that stores data such as texture coordinates
-type Attribute struct {
-	Name string
-	Data []float32
-	Size int
-}
-
 //LoadToVAO loads a model to the gpu
 func LoadToVAO(points []float32, textureCoords []float32, indices []uint32) *models.RawModel {
 	id := createVAO()

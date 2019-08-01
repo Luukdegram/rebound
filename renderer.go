@@ -33,21 +33,26 @@ func (r *Renderer) TogglePolygons() {
 	r.drawPolygon = !r.drawPolygon
 }
 
-//Render renders a model
-func (r Renderer) Render(entity *Entity) {
-	texturedModel := entity.GetModel()
-	model := texturedModel.Model
+//Render draws a 3D model into the screen
+func (r Renderer) Render(geometry *Geometry) {
 	if r.drawPolygon {
 		gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
 	} else {
 		gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
 	}
-	gl.BindVertexArray(model.VaoID)
-	gl.EnableVertexAttribArray(0)
-	gl.EnableVertexAttribArray(1)
-	gl.BindTexture(gl.TEXTURE_2D, texturedModel.Texture.ID)
-	gl.DrawElements(gl.TRIANGLES, int32(model.VertexCount), gl.UNSIGNED_INT, gl.Ptr(nil))
-	gl.DisableVertexAttribArray(0)
-	gl.DisableVertexAttribArray(1)
-	gl.BindVertexArray(0)
+
+	for _, mesh := range geometry.Meshes {
+		gl.BindVertexArray(mesh.RawModel.VaoID)
+		for index := range mesh.attributes {
+			gl.EnableVertexAttribArray(uint32(index))
+		}
+		if mesh.IsTextured() {
+			gl.BindTexture(gl.TEXTURE_2D, mesh.Texture.ID)
+		}
+		gl.DrawElements(gl.TRIANGLES, int32(mesh.RawModel.VertexCount), gl.UNSIGNED_INT, gl.Ptr(nil))
+		for index := range mesh.attributes {
+			gl.DisableVertexAttribArray(uint32(index))
+		}
+		gl.BindVertexArray(0)
+	}
 }

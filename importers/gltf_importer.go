@@ -1,6 +1,7 @@
 package importers
 
 import (
+	"path"
 	"unsafe"
 
 	"github.com/luukdegram/rebound"
@@ -10,16 +11,19 @@ import (
 )
 
 //LoadGltfModel imports a GLTF file into a model
-func LoadGltfModel(file string) []models.RawModel {
+func LoadGltfModel(file string) (*rebound.Geometry, error) {
 	doc, err := gltf.Open(file)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	models := make([]models.RawModel, 0)
+
+	dir := path.Dir(file)
+	meshes := make([]rebound.Mesh, 0, 0)
 
 	for _, mesh := range doc.Meshes {
 		indices := make([]uint32, 0, 0)
 		attributes := make([]rebound.Attribute, 0, 0)
+		m := rebound.NewMesh()
 
 		for _, primitive := range mesh.Primitives {
 			if primitive.Indices != nil {
@@ -33,11 +37,26 @@ func LoadGltfModel(file string) []models.RawModel {
 				}
 			}
 
+			if primitive.Material != nil {
+				if doc.Materials[*primitive.Material].PBRMetallicRoughness.BaseColorTexture != nil {
+					textureSource := doc.Textures[(doc.Materials[*primitive.Material].PBRMetallicRoughness.BaseColorTexture).Index].Source
+					texID, err := rebound.LoadTexture(dir +"/" + doc.Images[*textureSource].URI)
+					if err != nil {
+						return nil, err
+					}
+
+					m.Texture = models.NewModelTexture(texID)
+				}
+			}
+
 		}
 
-		models = append(models, *rebound.LoadToVAO2(indices, attributes))
+		m.RawModel = rebound.LoadToVAO2(indices, attributes)
+		m.AddAttributes(attributes...)
+		meshes = append(meshes, *m)
 	}
-	return models
+
+	return rebound.NewGeometry(meshes...), nil
 }
 
 func loadIndices(doc *gltf.Document, index int) []uint32 {

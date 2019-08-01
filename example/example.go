@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -9,7 +8,6 @@ import (
 	"github.com/luukdegram/rebound"
 	"github.com/luukdegram/rebound/display"
 	"github.com/luukdegram/rebound/importers"
-	"github.com/luukdegram/rebound/models"
 	"github.com/luukdegram/rebound/shaders"
 )
 
@@ -108,26 +106,21 @@ func main() {
 	}
 	defer window.Close()
 
-	meshes := importers.LoadGltfModel("gltf_objects/triangle.gltf")
-	fmt.Println(len(meshes))
+	geo, err := importers.LoadGltfModel("gltf_objects/avacado.gltf")
+	if err != nil {
+		panic(err)
+	}
 
 	shader, err := shaders.NewShaderProgram("shaders/vertexShader.vert", "shaders/fragmentShader.frag", "position", "textureCoords")
 	if err != nil {
 		panic(err)
 	}
 	renderer := rebound.NewRenderer()
-	model := rebound.LoadToVAO(triangle, textureCoords, indices)
-	texture, err := rebound.LoadTexture("textures/square.png")
-	if err != nil {
-		panic(err)
-	}
-	modelTexture := models.NewModelTexture(texture)
-	texturedModel := models.NewTexturedModel(model, modelTexture)
 
-	entity := rebound.NewEntity(texturedModel)
+	entity := rebound.NewEntity()
 
 	camera := rebound.NewCamera()
-	camera.Pos[2] = 3
+	camera.Pos[2] = 0.5
 	projection := rebound.NewProjectionMatrix(renderer.FOV, float32(width/height), renderer.NearPlane, renderer.FarPlane)
 
 	window.RegisterKeyboardHandler(display.KeyP, func() {
@@ -135,7 +128,7 @@ func main() {
 	})
 
 	for !window.ShouldClose() {
-		entity.Rotate(mgl32.Vec3{0.1, 0.1, 0.1})
+		entity.Rotate(mgl32.Vec3{0, 1, 0})
 
 		transform := rebound.NewTransformationMatrix(entity.Position, entity.Rotation, entity.Scale)
 
@@ -144,7 +137,7 @@ func main() {
 		shader.LoadMat(shader.GetUniformLocation("projectionMatrix"), projection)
 		shader.LoadMat(shader.GetUniformLocation("viewMatrix"), rebound.NewViewMatrix(*camera))
 		shader.LoadMat(shader.GetUniformLocation("transformMatrix"), transform)
-		renderer.Render(entity)
+		renderer.Render(geo)
 		shader.Stop()
 
 		window.Update()

@@ -1,6 +1,6 @@
 #version 410 core
-layout (location = 0) in vec3 position;
-layout (location = 1) in vec2 textureCoords;
+layout (location = 3) in vec3 position;
+layout (location = 0) in vec2 textureCoords;
 
 out vec2 pass_textureCoords;
 out vec4 vertexColor;
