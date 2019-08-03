@@ -55,8 +55,8 @@ func (sp ShaderProgram) LoadFloat(location int32, value float32) {
 	gl.Uniform1f(int32(location), value)
 }
 
-//LoadVec loads a uniform Vector into the shader
-func (sp ShaderProgram) LoadVec(location int32, value mgl32.Vec3) {
+//LoadVec3 loads a uniform Vector into the shader
+func (sp ShaderProgram) LoadVec3(location int32, value mgl32.Vec3) {
 	gl.Uniform3f(int32(location), value[0], value[1], value[2])
 }
 

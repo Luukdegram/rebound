@@ -4,11 +4,12 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-//Entity is a generic game object with a textured model, position, rotation and a scale
+//Entity is a generic game object with a geometry, position, rotation and a scale
 type Entity struct {
 	Position mgl32.Vec3
 	Rotation mgl32.Vec3
 	Scale    float32
+	Geometry *Geometry
 }
 
 //Rotate rotates an Entity with each coordinate being the amount of degrees

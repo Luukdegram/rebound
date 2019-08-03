@@ -8,12 +8,12 @@ type Camera struct {
 	Pitch, Yaw, Roll float32
 }
 
-//NewCamera creates a new camera object
-func NewCamera() *Camera {
-	return &Camera{}
-}
-
 //Move moves the camera around the 3D world given the input
 func (c *Camera) Move(vec mgl32.Vec3) {
 	c.Pos = c.Pos.Add(vec)
+}
+
+//MoveTo moves the camera to the 3D point
+func (c *Camera) MoveTo(vec mgl32.Vec3) {
+	c.Pos = vec
 }
