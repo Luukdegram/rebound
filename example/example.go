@@ -111,7 +111,7 @@ func main() {
 		panic(err)
 	}
 
-	shader, err := shaders.NewShaderProgram("shaders/vertexShader.vert", "shaders/fragmentShader.frag", "position", "textureCoords")
+	shader, err := shaders.NewShaderProgram("shaders/vertexShader.vert", "shaders/fragmentShader.frag")
 	if err != nil {
 		panic(err)
 	}
@@ -120,7 +120,7 @@ func main() {
 	entity := rebound.NewEntity()
 
 	camera := rebound.NewCamera()
-	camera.Pos[2] = 0.2
+	camera.Pos[2] = 0.5
 	projection := rebound.NewProjectionMatrix(renderer.FOV, float32(width/height), renderer.NearPlane, renderer.FarPlane)
 
 	window.RegisterKeyboardHandler(display.KeyP, func() {

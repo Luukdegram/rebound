@@ -33,14 +33,16 @@ func LoadGltfModel(file string) (*rebound.Geometry, error) {
 			if len(primitive.Attributes) > 0 {
 				for name, index := range primitive.Attributes {
 					accessor := doc.Accessors[index]
-					attributes = append(attributes, rebound.Attribute{Name: name, Data: loadAccessorF32(doc, int(index)), Size: typeSizes[accessor.Type]})
+					attribute := rebound.Attribute{Type: attTypes[name], Data: loadAccessorF32(doc, int(index)), Size: typeSizes[accessor.Type]}
+					attributes = append(attributes, attribute)
+					m.AddAttribute(attribute)
 				}
 			}
 
 			if primitive.Material != nil {
 				if doc.Materials[*primitive.Material].PBRMetallicRoughness.BaseColorTexture != nil {
 					textureSource := doc.Textures[(doc.Materials[*primitive.Material].PBRMetallicRoughness.BaseColorTexture).Index].Source
-					texID, err := rebound.LoadTexture(dir +"/" + doc.Images[*textureSource].URI)
+					texID, err := rebound.LoadTexture(dir + "/" + doc.Images[*textureSource].URI)
 					if err != nil {
 						return nil, err
 					}
@@ -52,7 +54,6 @@ func LoadGltfModel(file string) (*rebound.Geometry, error) {
 		}
 
 		m.RawModel = rebound.LoadToVAO2(indices, attributes)
-		m.AddAttributes(attributes...)
 		meshes = append(meshes, *m)
 	}
 
@@ -123,4 +124,11 @@ var typeSizes = map[gltf.AccessorType]int{
 	gltf.Mat2:   4,
 	gltf.Mat3:   9,
 	gltf.Mat4:   16,
+}
+
+var attTypes = map[string]rebound.AttributeType{
+	"TEXCOORD_0": rebound.TexCoords,
+	"NORMAL":     rebound.Normals,
+	"TANGENT":    rebound.Tangents,
+	"POSITION":   rebound.Position,
 }

@@ -1,6 +1,8 @@
 #version 410 core
-layout (location = 3) in vec3 position;
-layout (location = 0) in vec2 textureCoords;
+layout (location = 0) in vec3 position;
+layout (location = 1) in vec2 textureCoords;
+layout (location = 2) in vec3 normal;
+layout (location = 3) in vec4 tangent;
 
 out vec2 pass_textureCoords;
 out vec4 vertexColor;

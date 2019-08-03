@@ -19,7 +19,7 @@ type ShaderProgram struct {
 }
 
 //NewShaderProgram creates a new shader program given the vertex file and fragment file
-func NewShaderProgram(vertexFile string, fragmentFile string, attributes ...string) (*ShaderProgram, error) {
+func NewShaderProgram(vertexFile string, fragmentFile string) (*ShaderProgram, error) {
 	s := new(ShaderProgram)
 	var err error
 
@@ -35,10 +35,6 @@ func NewShaderProgram(vertexFile string, fragmentFile string, attributes ...stri
 	s.ID = gl.CreateProgram()
 	gl.AttachShader(s.ID, s.vertexShaderID)
 	gl.AttachShader(s.ID, s.fragmentShaderID)
-
-	for index, value := range attributes {
-		s.BindAttribute(index, value)
-	}
 
 	gl.LinkProgram(s.ID)
 	gl.ValidateProgram(s.ID)
@@ -98,7 +94,12 @@ func (sp ShaderProgram) CleanUp() {
 
 //BindAttribute binds an attribute to the shader program
 func (sp ShaderProgram) BindAttribute(attrib int, name string) {
-	gl.BindAttribLocation(sp.ID, uint32(attrib), gl.Str(name+"\x00"))
+	gl.BindAttribLocation(sp.ID, uint32(gl.GetAttribLocation(sp.ID, gl.Str(name+"\x00"))), gl.Str(name+"\x00"))
+}
+
+//GetAttributeLocation returns the location of an attribute
+func (sp ShaderProgram) GetAttributeLocation(name string) int32 {
+	return gl.GetAttribLocation(sp.ID, gl.Str(name+"\x00"))
 }
 
 //LoadShader loads a shader file from system and compiles it

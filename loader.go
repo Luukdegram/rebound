@@ -32,8 +32,8 @@ func LoadToVAO(points []float32, textureCoords []float32, indices []uint32) *mod
 func LoadToVAO2(indices []uint32, attributes []Attribute) *models.RawModel {
 	id := createVAO()
 	bindIndicesBuffer(indices)
-	for index, attribute := range attributes {
-		storeDataInAttributeList(index, attribute.Size, attribute.Data)
+	for _, attribute := range attributes {
+		storeDataInAttributeList(int(attribute.Type), attribute.Size, attribute.Data)
 	}
 	unbindVAO()
 	return &models.RawModel{VaoID: id, VertexCount: len(indices)}
@@ -94,7 +94,6 @@ func storeDataInAttributeList(index int, coordinateSize int, data []float32) {
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	gl.BufferData(gl.ARRAY_BUFFER, 4*len(data), gl.Ptr(data), gl.STATIC_DRAW)
 	gl.VertexAttribPointer(uint32(index), int32(coordinateSize), gl.FLOAT, false, 0, nil)
-	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 }
 
 func bindIndicesBuffer(indices []uint32) {
