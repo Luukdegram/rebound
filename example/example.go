@@ -123,6 +123,10 @@ func main() {
 	entity.Position[2] = -1
 	entity.Geometry = geo
 
+	entityTwo := rebound.NewEntity()
+	entityTwo.Trans(mgl32.Vec3{1, 0, -1})
+	entityTwo.Geometry = geo
+
 	renderer.Camera.Pos[2] = -0.3
 
 	light := renderer.Light
@@ -135,15 +139,10 @@ func main() {
 
 	for !window.ShouldClose() {
 		entity.Rotate(mgl32.Vec3{0, 1, 0})
+		entityTwo.Rotate(mgl32.Vec3{0, 0, 1})
 
-		renderer.Prepare()
-		shader.Start()
-
-		shader.LoadVec3(shader.GetUniformLocation("lightPos"), light.Position)
-		shader.LoadVec3(shader.GetUniformLocation("lightColour"), light.Colour)
-		renderer.Render(*entity, *shader)
-		shader.Stop()
-
+		renderer.RegisterEntity(entity, entityTwo)
+		renderer.Render(*shader)
 		window.Update()
 	}
 	shader.CleanUp()

@@ -15,6 +15,16 @@ type Renderer struct {
 	Camera      *Camera
 	Light       *Light
 	pm          *mgl32.Mat4
+	registry    *registry
+}
+
+type registry struct {
+	entries map[string]*entry
+}
+
+type entry struct {
+	mesh     *Mesh
+	entities []*Entity
 }
 
 //NewRenderer returns a new Renderer object.
@@ -24,6 +34,10 @@ func NewRenderer() *Renderer {
 	r.NearPlane = 0.1
 	r.FarPlane = 1000
 	r.drawPolygon = false
+	r.registry = new(registry)
+	r.registry.entries = make(map[string]*entry)
+	gl.Enable(gl.CULL_FACE)
+	gl.CullFace(gl.BACK)
 	return r
 }
 
@@ -45,7 +59,7 @@ func (r *Renderer) NewLight() {
 }
 
 //Prepare cleans the screen for the next draw
-func (r Renderer) Prepare() {
+func (r Renderer) prepare() {
 	gl.Enable(gl.DEPTH_TEST)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	if r.drawPolygon {
@@ -61,30 +75,62 @@ func (r *Renderer) TogglePolygons() {
 }
 
 //Render draws a 3D model into the screen
-func (r Renderer) Render(entity Entity, shader shaders.ShaderProgram) {
-	transform := NewTransformationMatrix(entity.Position, entity.Rotation, entity.Scale)
-	shader.LoadMat(shader.GetUniformLocation("transformMatrix"), transform)
+func (r Renderer) Render(shader shaders.ShaderProgram) {
+	r.prepare()
+	shader.Start()
+	shader.LoadVec3(shader.GetUniformLocation("lightPos"), r.Light.Position)
+	shader.LoadVec3(shader.GetUniformLocation("lightColour"), r.Light.Colour)
 
 	if r.Camera != nil {
 		shader.LoadMat(shader.GetUniformLocation("projectionMatrix"), *r.pm)
 		shader.LoadMat(shader.GetUniformLocation("viewMatrix"), NewViewMatrix(*r.Camera))
 	}
 
-	for _, mesh := range entity.Geometry.Meshes {
-		gl.BindVertexArray(mesh.RawModel.VaoID)
-		for _, attr := range mesh.attributes {
-			gl.EnableVertexAttribArray(uint32(attr.Type))
+	for _, entry := range r.registry.entries {
+		prepareMesh(*entry.mesh, shader)
+		for _, entity := range entry.entities {
+			prepareInstance(*entity, shader)
+			gl.DrawElements(gl.TRIANGLES, int32(entry.mesh.RawModel.VertexCount), gl.UNSIGNED_INT, gl.Ptr(nil))
 		}
-		if mesh.IsTextured() {
-			gl.BindTexture(gl.TEXTURE_2D, mesh.Texture.ID)
-			shader.LoadFloat(shader.GetUniformLocation("shineDamper"), mesh.Texture.ShineDamper)
-			shader.LoadFloat(shader.GetUniformLocation("reflectivity"), mesh.Texture.Reflectivity)
-		}
-
-		gl.DrawElements(gl.TRIANGLES, int32(mesh.RawModel.VertexCount), gl.UNSIGNED_INT, gl.Ptr(nil))
-		for _, attr := range mesh.attributes {
-			gl.DisableVertexAttribArray(uint32(attr.Type))
-		}
-		gl.BindVertexArray(0)
+		unbindMesh(*entry.mesh)
 	}
+
+	shader.Stop()
+	r.registry.entries = make(map[string]*entry)
+}
+
+//RegisterEntity registers entities to the renderer
+func (r *Renderer) RegisterEntity(entities ...*Entity) {
+	for _, entity := range entities {
+		for _, mesh := range entity.Geometry.Meshes {
+			if val, ok := r.registry.entries[mesh.Name]; ok {
+				val.entities = append(val.entities, entity)
+			} else {
+				r.registry.entries[mesh.Name] = &entry{mesh: &mesh, entities: []*Entity{entity}}
+			}
+		}
+	}
+}
+
+func prepareMesh(mesh Mesh, shader shaders.ShaderProgram) {
+	gl.BindVertexArray(mesh.RawModel.VaoID)
+	for _, attr := range mesh.attributes {
+		gl.EnableVertexAttribArray(uint32(attr.Type))
+	}
+
+	if mesh.IsTextured() {
+		gl.BindTexture(gl.TEXTURE_2D, mesh.Texture.ID)
+		shader.LoadFloat(shader.GetUniformLocation("shineDamper"), mesh.Texture.ShineDamper)
+		shader.LoadFloat(shader.GetUniformLocation("reflectivity"), mesh.Texture.Reflectivity)
+	}
+}
+func unbindMesh(mesh Mesh) {
+	for _, attr := range mesh.attributes {
+		gl.DisableVertexAttribArray(uint32(attr.Type))
+	}
+	gl.BindVertexArray(0)
+}
+func prepareInstance(entity Entity, shader shaders.ShaderProgram) {
+	transform := NewTransformationMatrix(entity.Position, entity.Rotation, entity.Scale)
+	shader.LoadMat(shader.GetUniformLocation("transformMatrix"), transform)
 }

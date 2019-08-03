@@ -23,7 +23,7 @@ func LoadGltfModel(file string) (*rebound.Geometry, error) {
 	for _, mesh := range doc.Meshes {
 		indices := make([]uint32, 0, 0)
 		attributes := make([]rebound.Attribute, 0, 0)
-		m := rebound.NewMesh()
+		m := rebound.NewMesh(mesh.Name)
 
 		for _, primitive := range mesh.Primitives {
 			if primitive.Indices != nil {

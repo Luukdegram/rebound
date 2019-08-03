@@ -8,6 +8,7 @@ type Mesh struct {
 	Texture    *models.ModelTexture
 	Childs     []Mesh
 	attributes []Attribute
+	Name       string
 }
 
 //Geometry is a struct that holds all meshes of a model
@@ -60,6 +61,6 @@ func NewGeometry(mesh ...Mesh) *Geometry {
 }
 
 //NewMesh creates a new Mesh object
-func NewMesh() *Mesh {
-	return new(Mesh)
+func NewMesh(name string) *Mesh {
+	return &Mesh{Name: name}
 }
