@@ -16,6 +16,7 @@ type Renderer struct {
 	Light       *Light
 	pm          *mgl32.Mat4
 	registry    *registry
+	skyColor    mgl32.Vec3
 }
 
 type registry struct {
@@ -30,14 +31,14 @@ type entry struct {
 //NewRenderer returns a new Renderer object.
 func NewRenderer() *Renderer {
 	r := new(Renderer)
-	r.FOV = 70
+	r.FOV = 45
 	r.NearPlane = 0.1
-	r.FarPlane = 1000
+	r.FarPlane = 100
 	r.drawPolygon = false
 	r.registry = new(registry)
 	r.registry.entries = make(map[string]*entry)
-	gl.Enable(gl.CULL_FACE)
-	gl.CullFace(gl.BACK)
+	r.skyColor = mgl32.Vec3{0, 0, 0}
+	enableCulling()
 	return r
 }
 
@@ -52,16 +53,22 @@ func (r *Renderer) NewCamera(width int, height int) {
 }
 
 //NewLight Adds Light to the renderer
-func (r *Renderer) NewLight() {
+func (r *Renderer) NewLight(position mgl32.Vec3) {
 	if r.Light == nil {
-		r.Light = &Light{Position: mgl32.Vec3{0, 0, 0}, Colour: mgl32.Vec3{1, 1, 1}}
+		r.Light = &Light{Position: position, Colour: mgl32.Vec3{1, 1, 1}}
 	}
+}
+
+//SetSkyColor sets the color of the sky
+func (r *Renderer) SetSkyColor(red, green, blue float32) {
+	r.skyColor = mgl32.Vec3{red, green, blue}
 }
 
 //Prepare cleans the screen for the next draw
 func (r Renderer) prepare() {
 	gl.Enable(gl.DEPTH_TEST)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	gl.ClearColor(r.skyColor[0], r.skyColor[1], r.skyColor[2], 1.0)
 	if r.drawPolygon {
 		gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
 	} else {
@@ -80,6 +87,7 @@ func (r Renderer) Render(shader shaders.ShaderProgram) {
 	shader.Start()
 	shader.LoadVec3(shader.GetUniformLocation("lightPos"), r.Light.Position)
 	shader.LoadVec3(shader.GetUniformLocation("lightColour"), r.Light.Colour)
+	shader.LoadVec3(shader.GetUniformLocation("skyColour"), r.skyColor)
 
 	if r.Camera != nil {
 		shader.LoadMat(shader.GetUniformLocation("projectionMatrix"), *r.pm)
@@ -112,6 +120,15 @@ func (r *Renderer) RegisterEntity(entities ...*Entity) {
 	}
 }
 
+func enableCulling() {
+	gl.Enable(gl.CULL_FACE)
+	gl.CullFace(gl.BACK)
+}
+
+func disableCulling() {
+	gl.Disable(gl.CULL_FACE)
+}
+
 func prepareMesh(mesh Mesh, shader shaders.ShaderProgram) {
 	gl.BindVertexArray(mesh.RawModel.VaoID)
 	for _, attr := range mesh.attributes {
@@ -119,12 +136,17 @@ func prepareMesh(mesh Mesh, shader shaders.ShaderProgram) {
 	}
 
 	if mesh.IsTextured() {
-		gl.BindTexture(gl.TEXTURE_2D, mesh.Texture.ID)
+		if mesh.Texture.HasTransparancy() {
+			disableCulling()
+		}
+		shader.LoadBool(shader.GetUniformLocation("reflectivity"), mesh.Texture.UseFakeLighting())
 		shader.LoadFloat(shader.GetUniformLocation("shineDamper"), mesh.Texture.ShineDamper)
 		shader.LoadFloat(shader.GetUniformLocation("reflectivity"), mesh.Texture.Reflectivity)
+		gl.BindTexture(gl.TEXTURE_2D, mesh.Texture.ID)
 	}
 }
 func unbindMesh(mesh Mesh) {
+	enableCulling()
 	for _, attr := range mesh.attributes {
 		gl.DisableVertexAttribArray(uint32(attr.Type))
 	}

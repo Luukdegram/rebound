@@ -53,7 +53,7 @@ func LoadGltfModel(file string) (*rebound.Geometry, error) {
 
 		}
 
-		m.RawModel = rebound.LoadToVAO2(indices, attributes)
+		m.RawModel = rebound.LoadToVAO(indices, attributes)
 		meshes = append(meshes, *m)
 	}
 

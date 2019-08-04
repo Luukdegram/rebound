@@ -18,18 +18,8 @@ var (
 	textures []uint32
 )
 
-//LoadToVAO loads a model to the gpu
-func LoadToVAO(points []float32, textureCoords []float32, indices []uint32) *models.RawModel {
-	id := createVAO()
-	bindIndicesBuffer(indices)
-	storeDataInAttributeList(0, 3, points)
-	storeDataInAttributeList(1, 2, textureCoords)
-	unbindVAO()
-	return &models.RawModel{VaoID: id, VertexCount: len(indices)}
-}
-
-//LoadToVAO2 test
-func LoadToVAO2(indices []uint32, attributes []Attribute) *models.RawModel {
+//LoadToVAO test
+func LoadToVAO(indices []uint32, attributes []Attribute) *models.RawModel {
 	id := createVAO()
 	bindIndicesBuffer(indices)
 	for _, attribute := range attributes {
@@ -58,12 +48,11 @@ func LoadTexture(fileName string) (uint32, error) {
 
 	var texture uint32
 	gl.GenTextures(1, &texture)
-	gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, texture)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 	gl.TexImage2D(
 		gl.TEXTURE_2D,
 		0,

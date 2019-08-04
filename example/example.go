@@ -8,86 +8,13 @@ import (
 	"github.com/luukdegram/rebound"
 	"github.com/luukdegram/rebound/display"
 	"github.com/luukdegram/rebound/importers"
+	"github.com/luukdegram/rebound/models"
 	"github.com/luukdegram/rebound/shaders"
 )
 
 const (
-	height = 480
-	width  = 640
-)
-
-var (
-	triangle = []float32{
-		-0.5, 0.5, -0.5,
-		-0.5, -0.5, -0.5,
-		0.5, -0.5, -0.5,
-		0.5, 0.5, -0.5,
-
-		-0.5, 0.5, 0.5,
-		-0.5, -0.5, 0.5,
-		0.5, -0.5, 0.5,
-		0.5, 0.5, 0.5,
-
-		0.5, 0.5, -0.5,
-		0.5, -0.5, -0.5,
-		0.5, -0.5, 0.5,
-		0.5, 0.5, 0.5,
-
-		-0.5, 0.5, -0.5,
-		-0.5, -0.5, -0.5,
-		-0.5, -0.5, 0.5,
-		-0.5, 0.5, 0.5,
-
-		-0.5, 0.5, 0.5,
-		-0.5, 0.5, -0.5,
-		0.5, 0.5, -0.5,
-		0.5, 0.5, 0.5,
-
-		-0.5, -0.5, 0.5,
-		-0.5, -0.5, -0.5,
-		0.5, -0.5, -0.5,
-		0.5, -0.5, 0.5,
-	}
-	indices = []uint32{
-		0, 1, 3,
-		3, 1, 2,
-		4, 5, 7,
-		7, 5, 6,
-		8, 9, 11,
-		11, 9, 10,
-		12, 13, 15,
-		15, 13, 14,
-		16, 17, 19,
-		19, 17, 18,
-		20, 21, 23,
-		23, 21, 22,
-	}
-	textureCoords = []float32{
-		0, 0,
-		0, 1,
-		1, 1,
-		1, 0,
-		0, 0,
-		0, 1,
-		1, 1,
-		1, 0,
-		0, 0,
-		0, 1,
-		1, 1,
-		1, 0,
-		0, 0,
-		0, 1,
-		1, 1,
-		1, 0,
-		0, 0,
-		0, 1,
-		1, 1,
-		1, 0,
-		0, 0,
-		0, 1,
-		1, 1,
-		1, 0,
-	}
+	height = 1080
+	width  = 1920
 )
 
 func init() {
@@ -117,31 +44,35 @@ func main() {
 	}
 	renderer := rebound.NewRenderer()
 	renderer.NewCamera(width, height)
-	renderer.NewLight()
+	renderer.NewLight(mgl32.Vec3{3000, 2000, 2000})
+	renderer.SetSkyColor(0.5, 0.5, 0.5)
 
 	entity := rebound.NewEntity()
-	entity.Position[2] = -1
 	entity.Geometry = geo
 
-	entityTwo := rebound.NewEntity()
-	entityTwo.Trans(mgl32.Vec3{1, 0, -1})
-	entityTwo.Geometry = geo
+	texture, err := rebound.LoadTexture("textures/grass2.png")
+	if err != nil {
+		panic(err)
+	}
 
-	renderer.Camera.Pos[2] = -0.3
+	terr2 := rebound.NewTerrain(-1, 0, models.NewModelTexture(texture))
 
-	light := renderer.Light
-	light.Position = entity.Position
-	light.Position[2] = -0.9
+	renderer.Camera.Pos[2] = 1
+	renderer.Camera.Pos[1] = 0.1
+	//renderer.Camera.Pitch = 30
 
 	window.RegisterKeyboardHandler(display.KeyP, func() {
 		renderer.TogglePolygons()
 	})
 
+	window.RegisterScrollWheelHandler(func(x, y float64) {
+		renderer.Camera.Move(mgl32.Vec3{0, 0, float32(-y * 0.1)})
+	})
+
 	for !window.ShouldClose() {
 		entity.Rotate(mgl32.Vec3{0, 1, 0})
-		entityTwo.Rotate(mgl32.Vec3{0, 0, 1})
 
-		renderer.RegisterEntity(entity, entityTwo)
+		renderer.RegisterEntity(entity, terr2)
 		renderer.Render(*shader)
 		window.Update()
 	}

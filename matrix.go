@@ -24,9 +24,9 @@ func NewProjectionMatrix(angle, aspect, nearPlane, farPlane float32) mgl32.Mat4 
 //NewViewMatrix returns a new view matrix
 func NewViewMatrix(camera Camera) mgl32.Mat4 {
 	mat := mgl32.Ident4()
+	return mgl32.LookAtV(camera.Pos, mgl32.Vec3{0, 0, 0}, mgl32.Vec3{0, 1, 0})
 	rotX := mgl32.HomogRotate3DX(mgl32.DegToRad(camera.Pitch))
 	rotY := mgl32.HomogRotate3DY(mgl32.DegToRad(camera.Yaw))
-	mat = mat.Mul4(rotX).Mul4(rotY)
 	translation := mgl32.Translate3D(-camera.Pos[0], -camera.Pos[1], -camera.Pos[2])
-	return mat.Mul4(translation)
+	return mat.Mul4(rotX).Mul4(rotY).Add(translation)
 }

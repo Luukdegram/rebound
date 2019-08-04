@@ -16,6 +16,7 @@ type Manager interface {
 	Update()
 	GetSize() Size
 	RegisterKeyboardHandler(key Key, callback KeyCallback)
+	RegisterScrollWheelHandler(callback ScrollCallback)
 }
 
 //Size holds width and height of a window
@@ -91,6 +92,9 @@ func (g *GLFWManager) Init(width int, height int, title string) error {
 //KeyCallback is a function that can be triggered when a key is pressed
 type KeyCallback func()
 
+//ScrollCallback is a function that can be triggered when the scrollwheel is used
+type ScrollCallback func(x, y float64)
+
 //RegisterKeyboardHandler registers a callback action to a certain key
 func (g *GLFWManager) RegisterKeyboardHandler(key Key, callback KeyCallback) {
 	fn := func(window *glfw.Window, glfwKey glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
@@ -99,6 +103,14 @@ func (g *GLFWManager) RegisterKeyboardHandler(key Key, callback KeyCallback) {
 		}
 	}
 	g.w.SetKeyCallback(fn)
+}
+
+//RegisterScrollWheelHandler registers a callback action that triggers when the scrollwheel turns
+func (g *GLFWManager) RegisterScrollWheelHandler(callback ScrollCallback) {
+	fn := func(window *glfw.Window, x, y float64) {
+		callback(x, y)
+	}
+	g.w.SetScrollCallback(fn)
 }
 
 //ShouldClose returns a boolean wether the window should close or not.
