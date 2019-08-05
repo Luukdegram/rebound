@@ -17,7 +17,7 @@ uniform vec3 lightPos;
 
 uniform float useFakeLighting;
 
-const float density = 0.007;
+const float density = 0.07;
 const float gradient = 1.5;
 
 void main(void) {
@@ -35,7 +35,7 @@ void main(void) {
     lightVec = lightPos - worldPos.xyz;
     cameraVec = (inverse(viewMatrix) * vec4(0,0,0,1)).xyz - worldPos.xyz;
 
-    float distance = length(positionRelativeToCam.xyz);
-    visibility = exp(-pow((distance*density), gradient));
+    float dist = abs(positionRelativeToCam.z);
+    visibility = exp(-pow(dist*density, gradient));
     visibility = clamp(visibility, 0.0, 1.0);
 }

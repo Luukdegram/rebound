@@ -39,39 +39,43 @@ func NewShaderProgram(vertexFile string, fragmentFile string) (*ShaderProgram, e
 	gl.LinkProgram(s.ID)
 	gl.ValidateProgram(s.ID)
 
-	gl.DeleteShader(s.vertexShaderID)
-	gl.DeleteShader(s.fragmentShaderID)
+	gl.DetachShader(s.ID, s.vertexShaderID)
+	gl.DetachShader(s.ID, s.fragmentShaderID)
 
 	return s, nil
 }
 
-//GetUniformLocation returns the location of the uniform given, returning the OpenGL id as an int32
-func (sp ShaderProgram) GetUniformLocation(name string) int32 {
+//getUniformLocation returns the location of the uniform given, returning the OpenGL id as an int32
+func (sp ShaderProgram) getUniformLocation(name string) int32 {
 	return gl.GetUniformLocation(sp.ID, gl.Str(name+"\x00"))
 }
 
 //LoadFloat loads a uniform float into the shader
-func (sp ShaderProgram) LoadFloat(location int32, value float32) {
-	gl.Uniform1f(int32(location), value)
+func (sp ShaderProgram) LoadFloat(name string, value float32) {
+	loc := sp.getUniformLocation(name)
+	gl.Uniform1f(loc, value)
 }
 
 //LoadVec3 loads a uniform Vector into the shader
-func (sp ShaderProgram) LoadVec3(location int32, value mgl32.Vec3) {
-	gl.Uniform3f(int32(location), value[0], value[1], value[2])
+func (sp ShaderProgram) LoadVec3(name string, value mgl32.Vec3) {
+	loc := sp.getUniformLocation(name)
+	gl.Uniform3f(loc, value[0], value[1], value[2])
 }
 
 //LoadBool loads a boolean into the shader
-func (sp ShaderProgram) LoadBool(location int32, value bool) {
+func (sp ShaderProgram) LoadBool(name string, value bool) {
+	loc := sp.getUniformLocation(name)
 	var float float32
 	if value {
 		float = 1
 	}
-	gl.Uniform1f(int32(location), float)
+	gl.Uniform1f(loc, float)
 }
 
 //LoadMat loads a matrix into the shader
-func (sp ShaderProgram) LoadMat(location int32, value mgl32.Mat4) {
-	gl.UniformMatrix4fv(int32(location), 1, false, &value[0])
+func (sp ShaderProgram) LoadMat(name string, value mgl32.Mat4) {
+	loc := sp.getUniformLocation(name)
+	gl.UniformMatrix4fv(loc, 1, false, &value[0])
 }
 
 //Start starts the shader program
@@ -84,22 +88,9 @@ func (sp ShaderProgram) Stop() {
 	gl.UseProgram(0)
 }
 
-//CleanUp stops the program, detaches shaders and finally deletes them as well as the program
+//CleanUp deletes the program
 func (sp ShaderProgram) CleanUp() {
-	sp.Stop()
-	gl.DetachShader(sp.ID, sp.vertexShaderID)
-	gl.DetachShader(sp.ID, sp.fragmentShaderID)
 	gl.DeleteProgram(sp.ID)
-}
-
-//BindAttribute binds an attribute to the shader program
-func (sp ShaderProgram) BindAttribute(attrib int, name string) {
-	gl.BindAttribLocation(sp.ID, uint32(gl.GetAttribLocation(sp.ID, gl.Str(name+"\x00"))), gl.Str(name+"\x00"))
-}
-
-//GetAttributeLocation returns the location of an attribute
-func (sp ShaderProgram) GetAttributeLocation(name string) int32 {
-	return gl.GetAttribLocation(sp.ID, gl.Str(name+"\x00"))
 }
 
 //LoadShader loads a shader file from system and compiles it

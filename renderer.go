@@ -85,19 +85,19 @@ func (r *Renderer) TogglePolygons() {
 func (r Renderer) Render(shader shaders.ShaderProgram) {
 	r.prepare()
 	shader.Start()
-	shader.LoadVec3(shader.GetUniformLocation("lightPos"), r.Light.Position)
-	shader.LoadVec3(shader.GetUniformLocation("lightColour"), r.Light.Colour)
-	shader.LoadVec3(shader.GetUniformLocation("skyColour"), r.skyColor)
+	shader.LoadVec3("lightPos", r.Light.Position)
+	shader.LoadVec3("lightColour", r.Light.Colour)
+	shader.LoadVec3("skyColour", r.skyColor)
 
 	if r.Camera != nil {
-		shader.LoadMat(shader.GetUniformLocation("projectionMatrix"), *r.pm)
-		shader.LoadMat(shader.GetUniformLocation("viewMatrix"), NewViewMatrix(*r.Camera))
+		shader.LoadMat("projectionMatrix", *r.pm)
+		shader.LoadMat("viewMatrix", NewViewMatrix(*r.Camera))
 	}
 
 	for _, entry := range r.registry.entries {
 		prepareMesh(*entry.mesh, shader)
 		for _, entity := range entry.entities {
-			prepareInstance(*entity, shader)
+			prepareInstance(*entity, shader) // Set transformation matrix
 			gl.DrawElements(gl.TRIANGLES, int32(entry.mesh.RawModel.VertexCount), gl.UNSIGNED_INT, gl.Ptr(nil))
 		}
 		unbindMesh(*entry.mesh)
@@ -139,12 +139,13 @@ func prepareMesh(mesh Mesh, shader shaders.ShaderProgram) {
 		if mesh.Texture.HasTransparancy() {
 			disableCulling()
 		}
-		shader.LoadBool(shader.GetUniformLocation("reflectivity"), mesh.Texture.UseFakeLighting())
-		shader.LoadFloat(shader.GetUniformLocation("shineDamper"), mesh.Texture.ShineDamper)
-		shader.LoadFloat(shader.GetUniformLocation("reflectivity"), mesh.Texture.Reflectivity)
+		shader.LoadBool("useFakeLighting", mesh.Texture.UseFakeLighting())
+		shader.LoadFloat("shineDamper", mesh.Texture.ShineDamper)
+		shader.LoadFloat("reflectivity", mesh.Texture.Reflectivity)
 		gl.BindTexture(gl.TEXTURE_2D, mesh.Texture.ID)
 	}
 }
+
 func unbindMesh(mesh Mesh) {
 	enableCulling()
 	for _, attr := range mesh.attributes {
@@ -152,7 +153,8 @@ func unbindMesh(mesh Mesh) {
 	}
 	gl.BindVertexArray(0)
 }
+
 func prepareInstance(entity Entity, shader shaders.ShaderProgram) {
 	transform := NewTransformationMatrix(entity.Position, entity.Rotation, entity.Scale)
-	shader.LoadMat(shader.GetUniformLocation("transformMatrix"), transform)
+	shader.LoadMat("transformMatrix", transform)
 }
