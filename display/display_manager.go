@@ -45,7 +45,6 @@ func Default() Manager {
 
 //GLFWManager handles the GLFW window
 type GLFWManager struct {
-	Manager
 	w    *glfw.Window
 	size *Size
 }

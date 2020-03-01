@@ -7,5 +7,4 @@ require (
 	github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1
 	github.com/go-gl/mathgl v0.0.0-20190713194549-592312d8590a
 	github.com/qmuntal/gltf v0.9.0
-	github.com/udhos/gwob v0.0.0-20190523181606-728b7edd132c
 )

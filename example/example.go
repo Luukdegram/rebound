@@ -8,7 +8,6 @@ import (
 	"github.com/luukdegram/rebound"
 	"github.com/luukdegram/rebound/display"
 	"github.com/luukdegram/rebound/importers"
-	"github.com/luukdegram/rebound/models"
 	"github.com/luukdegram/rebound/shaders"
 )
 
@@ -38,10 +37,11 @@ func main() {
 		panic(err)
 	}
 
-	shader, err := shaders.NewShaderProgram("shaders/vertexShader.vert", "shaders/fragmentShader.frag")
+	modelShader, err := shaders.NewShaderProgram("shaders/vertexShader.vert", "shaders/fragmentShader.frag")
 	if err != nil {
 		panic(err)
 	}
+
 	renderer := rebound.NewRenderer()
 	renderer.NewCamera(width, height)
 	renderer.NewLight(mgl32.Vec3{3000, 2000, 2000})
@@ -50,16 +50,8 @@ func main() {
 	entity := rebound.NewEntity()
 	entity.Geometry = geo
 
-	texture, err := rebound.LoadTexture("textures/grass2.png")
-	if err != nil {
-		panic(err)
-	}
-
-	terr2 := rebound.NewTerrain(-1, 0, models.NewModelTexture(texture))
-
-	renderer.Camera.Pos[2] = 1
+	renderer.Camera.Pos[2] = 1.5
 	renderer.Camera.Pos[1] = 0.1
-	//renderer.Camera.Pitch = 30
 
 	window.RegisterKeyboardHandler(display.KeyP, func() {
 		renderer.TogglePolygons()
@@ -71,11 +63,11 @@ func main() {
 
 	for !window.ShouldClose() {
 		entity.Rotate(mgl32.Vec3{0, 1, 0})
+		renderer.RegisterEntity(entity)
+		renderer.Render(*modelShader)
 
-		renderer.RegisterEntity(entity, terr2)
-		renderer.Render(*shader)
 		window.Update()
 	}
-	shader.CleanUp()
+	modelShader.CleanUp()
 	rebound.CleanUp()
 }
