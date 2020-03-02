@@ -5,25 +5,26 @@ import (
 	"unsafe"
 
 	"github.com/luukdegram/rebound"
-	"github.com/luukdegram/rebound/models"
+	"github.com/luukdegram/rebound/ecs"
 
 	"github.com/qmuntal/gltf"
 )
 
 //LoadGltfModel imports a GLTF file into a model
-func LoadGltfModel(file string) (*rebound.Geometry, error) {
+func LoadGltfModel(file string) (*ecs.Entity, error) {
 	doc, err := gltf.Open(file)
 	if err != nil {
 		return nil, err
 	}
 
 	dir := path.Dir(file)
-	meshes := make([]rebound.Mesh, 0, 0)
+	entity := ecs.NewEntity()
 
 	for _, mesh := range doc.Meshes {
 		indices := make([]uint32, 0, 0)
 		attributes := make([]rebound.Attribute, 0, 0)
 		m := rebound.NewMesh(mesh.Name)
+		var tc *rebound.TextureComponent
 
 		for _, primitive := range mesh.Primitives {
 			if primitive.Indices != nil {
@@ -47,17 +48,17 @@ func LoadGltfModel(file string) (*rebound.Geometry, error) {
 						return nil, err
 					}
 
-					m.Texture = models.NewModelTexture(texID)
+					tc = rebound.NewTextureComponent(texID)
 				}
 			}
 
 		}
 
-		m.RawModel = rebound.LoadToVAO(indices, attributes)
-		meshes = append(meshes, *m)
+		rc := rebound.LoadToVAO(indices, attributes)
+		entity.AddChild(ecs.NewEntity(rc, tc))
 	}
 
-	return rebound.NewGeometry(meshes...), nil
+	return entity, nil
 }
 
 func loadIndices(doc *gltf.Document, index int) []uint32 {

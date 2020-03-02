@@ -74,26 +74,33 @@ func (rs *RenderSystem) Update(dt float32) {
 			}
 
 			if rc := e.Component(RenderComponentName).(*RenderComponent); rc != nil {
-				rc.Renderable.Render(sc, *rs.Camera)
+				rc.Renderable.Render(*e, sc, *rs.Camera)
+				prepareRenderable(*e)
+				gl.DrawElements(gl.TRIANGLES, int32(rc.vertexCount), gl.UNSIGNED_INT, gl.Ptr(nil))
+				unbindRenderable(*e)
 			}
+			shaders.Stop()
 		}
 	}
 }
 
-//RenderComponent holds the data to render an entity
+// RenderComponent holds the data to render an entity
 type RenderComponent struct {
 	Renderable
+	vaoID       uint32
+	vertexCount int
+	attributes  []Attribute
 }
 
-//Name returns the RenderComponent name
+// Name returns the RenderComponent name
 func (rc *RenderComponent) Name() string {
 	return RenderComponentName
 }
 
-//Renderable is an object that can be rendered
+// Renderable is an object that can be rendered
 type Renderable interface {
 	//Render is a function that is called by the RenderSystem which can be used to modify the parameters in the shader
-	Render(shaders.ShaderComponent, Camera)
+	Render(ecs.Entity, shaders.ShaderComponent, Camera)
 }
 
 type registry struct {
@@ -202,6 +209,37 @@ func enableCulling() {
 
 func disableCulling() {
 	gl.Disable(gl.CULL_FACE)
+}
+
+func prepareRenderable(e ecs.Entity) {
+	rc := e.Component(RenderComponentName).(*RenderComponent)
+	gl.BindVertexArray(rc.vaoID)
+
+	for _, a := range rc.attributes {
+		gl.EnableVertexAttribArray(uint32(a.Type))
+	}
+
+	if e.HasComponent(TextureComponentName) {
+		tc := e.Component(TextureComponentName).(*TextureComponent)
+		if tc.Transparant {
+			disableCulling()
+		}
+
+		sc := *e.Component(shaders.ShaderComponentName).(*shaders.ShaderComponent)
+		shaders.LoadBool(sc, "useFakeLighting", tc.Transparant)
+		shaders.LoadFloat(sc, "shineDamper", tc.ShineDamper)
+		shaders.LoadFloat(sc, "reflectivity", tc.Reflectivity)
+		gl.BindTexture(gl.TEXTURE_2D, tc.id)
+	}
+}
+
+func unbindRenderable(e ecs.Entity) {
+	enableCulling()
+	rc := e.Component(RenderComponentName).(*RenderComponent)
+	for _, a := range rc.attributes {
+		gl.DisableVertexAttribArray(uint32(a.Type))
+	}
+	gl.BindVertexArray(0)
 }
 
 func prepareMesh(mesh Mesh, shader shaders.ShaderProgram) {

@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/go-gl/mathgl/mgl32"
 )
 
 //ShaderComponentName is the name of the ShaderComponent
@@ -26,15 +25,16 @@ func (sc *ShaderComponent) Name() string {
 
 //NewShaderComponent returns a new ShaderComponent by compiling the given vertexShader and fragmentShader
 //Returns an error if any of the shaders could not be compiled
-func NewShaderComponent(vertexShader, fragmentShader []byte) (s *ShaderComponent, err error) {
-	s = &ShaderComponent{}
+func NewShaderComponent(vertexShader, fragmentShader []byte) (*ShaderComponent, error) {
+	var err error
+	s := &ShaderComponent{}
 
 	if s.vertexShaderID, err = compileShader(string(vertexShader)+"\x00", gl.VERTEX_SHADER); err != nil {
-		return
+		return nil, err
 	}
 
 	if s.fragmentShaderID, err = compileShader(string(fragmentShader)+"\x00", gl.FRAGMENT_SHADER); err != nil {
-		return
+		return nil, err
 	}
 
 	s.id = gl.CreateProgram()
@@ -47,7 +47,7 @@ func NewShaderComponent(vertexShader, fragmentShader []byte) (s *ShaderComponent
 	gl.DetachShader(s.id, s.vertexShaderID)
 	gl.DetachShader(s.id, s.fragmentShaderID)
 
-	return
+	return s, nil
 }
 
 //GetUniformLocation returns the location of the uniform given, returning the OpenGL id as an int32
@@ -62,7 +62,7 @@ func LoadFloat(s ShaderComponent, name string, value float32) {
 }
 
 //LoadVec3 loads a uniform Vector into the shader
-func LoadVec3(s ShaderComponent, name string, value mgl32.Vec3) {
+func LoadVec3(s ShaderComponent, name string, value [3]float32) {
 	loc := GetUniformLocation(s, name)
 	gl.Uniform3f(loc, value[0], value[1], value[2])
 }
@@ -78,7 +78,7 @@ func LoadBool(s ShaderComponent, name string, value bool) {
 }
 
 //LoadMat loads a matrix into the shader
-func LoadMat(s ShaderComponent, name string, value mgl32.Mat4) {
+func LoadMat(s ShaderComponent, name string, value [16]float32) {
 	loc := GetUniformLocation(s, name)
 	gl.UniformMatrix4fv(loc, 1, false, &value[0])
 }
