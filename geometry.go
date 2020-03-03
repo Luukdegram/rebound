@@ -16,27 +16,6 @@ type Geometry struct {
 	Meshes []Mesh
 }
 
-//Attribute is vbo that stores data such as texture coordinates
-type Attribute struct {
-	Type AttributeType
-	Data []float32
-	Size int
-}
-
-//AttributeType can be used to link external attribute names to Rebound's
-type AttributeType int
-
-const (
-	//Position is a shader attribute used for positional coordinates
-	Position AttributeType = iota
-	//TexCoords is a shader attribute used for the coordinates of a texture
-	TexCoords
-	//Normals holds the coordinates of a normal texture
-	Normals
-	//Tangents holds the tangets data in a shader
-	Tangents
-)
-
 //IsTextured returns true if the Mesh has a modeltexture
 func (m Mesh) IsTextured() (out bool) {
 	out = m.Texture != nil

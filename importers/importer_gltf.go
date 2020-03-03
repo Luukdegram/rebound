@@ -131,5 +131,5 @@ var attTypes = map[string]rebound.AttributeType{
 	"TEXCOORD_0": rebound.TexCoords,
 	"NORMAL":     rebound.Normals,
 	"TANGENT":    rebound.Tangents,
-	"POSITION":   rebound.Position,
+	"POSITION":   rebound.Pos,
 }

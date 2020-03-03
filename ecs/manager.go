@@ -15,14 +15,14 @@ type Manager struct {
 
 //GetManager returns a [Manager].
 func GetManager() *Manager {
-	if manager != nil {
-		return manager
+	if manager == nil {
+		manager = &Manager{
+			m:       &sync.RWMutex{},
+			systems: []System{},
+		}
 	}
 
-	return &Manager{
-		m:       &sync.RWMutex{},
-		systems: []System{},
-	}
+	return manager
 }
 
 //Update handles the update of each [System] based on their priority

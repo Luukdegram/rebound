@@ -25,15 +25,15 @@ func (sc *ShaderComponent) Name() string {
 
 //NewShaderComponent returns a new ShaderComponent by compiling the given vertexShader and fragmentShader
 //Returns an error if any of the shaders could not be compiled
-func NewShaderComponent(vertexShader, fragmentShader []byte) (*ShaderComponent, error) {
+func NewShaderComponent(vertexShader, fragmentShader string) (*ShaderComponent, error) {
 	var err error
 	s := &ShaderComponent{}
 
-	if s.vertexShaderID, err = compileShader(string(vertexShader)+"\x00", gl.VERTEX_SHADER); err != nil {
+	if s.vertexShaderID, err = compileShader(vertexShader+"\x00", gl.VERTEX_SHADER); err != nil {
 		return nil, err
 	}
 
-	if s.fragmentShaderID, err = compileShader(string(fragmentShader)+"\x00", gl.FRAGMENT_SHADER); err != nil {
+	if s.fragmentShaderID, err = compileShader(fragmentShader+"\x00", gl.FRAGMENT_SHADER); err != nil {
 		return nil, err
 	}
 

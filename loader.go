@@ -25,7 +25,14 @@ func LoadToVAO(indices []uint32, attributes []Attribute) *RenderComponent {
 		storeDataInAttributeList(int(attribute.Type), attribute.Size, attribute.Data)
 	}
 	unbindVAO()
-	return &RenderComponent{vaoID: id, vertexCount: len(indices), attributes: attributes}
+	return &RenderComponent{
+		vaoID:       id,
+		vertexCount: len(indices),
+		attributes:  attributes,
+		Position:    [3]float32{0, 0, 0},
+		Rotation:    [3]float32{0, 0, 0},
+		Scale:       1.0,
+	}
 }
 
 //LoadTexture loads a texture into the GPU

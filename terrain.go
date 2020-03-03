@@ -75,14 +75,14 @@ func generateTerrain(t terrain, texture *models.ModelTexture) *Geometry {
 	}
 
 	attributes := []Attribute{
-		Attribute{Type: Position, Data: vertices, Size: 3},
+		Attribute{Type: Pos, Data: vertices, Size: 3},
 		Attribute{Type: Normals, Data: normals, Size: 3},
 		Attribute{Type: TexCoords, Data: vertices, Size: 2},
 	}
 
-	model := LoadToVAO(indices, attributes)
+	//model := LoadToVAO(indices, attributes)
 	mesh := NewMesh(terrainName)
-	mesh.RawModel = model
+	//mesh.RawModel = model
 	mesh.Texture = texture
 	for _, attribute := range attributes {
 		mesh.AddAttribute(attribute)
