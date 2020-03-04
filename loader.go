@@ -9,7 +9,6 @@ import (
 	_ "image/png" //Import png package to be able to decode png files
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/luukdegram/rebound/models"
 )
 
 var (
@@ -19,14 +18,21 @@ var (
 )
 
 //LoadToVAO test
-func LoadToVAO(indices []uint32, attributes []Attribute) *models.RawModel {
+func LoadToVAO(indices []uint32, attributes []Attribute) *RenderComponent {
 	id := createVAO()
 	bindIndicesBuffer(indices)
 	for _, attribute := range attributes {
 		storeDataInAttributeList(int(attribute.Type), attribute.Size, attribute.Data)
 	}
 	unbindVAO()
-	return &models.RawModel{VaoID: id, VertexCount: len(indices)}
+	return &RenderComponent{
+		vaoID:       id,
+		vertexCount: len(indices),
+		attributes:  attributes,
+		Position:    [3]float32{0, 0, 0},
+		Rotation:    [3]float32{0, 0, 0},
+		Scale:       1.0,
+	}
 }
 
 //LoadTexture loads a texture into the GPU

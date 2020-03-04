@@ -2,69 +2,74 @@ package shaders
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"strings"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/go-gl/mathgl/mgl32"
 )
 
-//ShaderProgram is a generic shader program
-type ShaderProgram struct {
-	ID               uint32
+//ShaderComponentName is the name of the ShaderComponent
+const ShaderComponentName string = "ShaderComponent"
+
+//ShaderComponent holds the data a ShaderProgram requires to use given shader
+type ShaderComponent struct {
+	id               uint32
 	vertexShaderID   uint32
 	fragmentShaderID uint32
-	attributes       []string
 }
 
-//NewShaderProgram creates a new shader program given the vertex file and fragment file
-func NewShaderProgram(vertexFile string, fragmentFile string) (*ShaderProgram, error) {
-	s := new(ShaderProgram)
+//Name returns the name of the ShaderComponent
+//Needed to fit the Component interface
+func (sc *ShaderComponent) Name() string {
+	return ShaderComponentName
+}
+
+//NewShaderComponent returns a new ShaderComponent by compiling the given vertexShader and fragmentShader
+//Returns an error if any of the shaders could not be compiled
+func NewShaderComponent(vertexShader, fragmentShader string) (*ShaderComponent, error) {
 	var err error
+	s := &ShaderComponent{}
 
-	s.vertexShaderID, err = loadShaderFromFile(vertexFile, gl.VERTEX_SHADER)
-	if err != nil {
-		return nil, err
-	}
-	s.fragmentShaderID, err = loadShaderFromFile(fragmentFile, gl.FRAGMENT_SHADER)
-	if err != nil {
+	if s.vertexShaderID, err = compileShader(vertexShader+"\x00", gl.VERTEX_SHADER); err != nil {
 		return nil, err
 	}
 
-	s.ID = gl.CreateProgram()
-	gl.AttachShader(s.ID, s.vertexShaderID)
-	gl.AttachShader(s.ID, s.fragmentShaderID)
+	if s.fragmentShaderID, err = compileShader(fragmentShader+"\x00", gl.FRAGMENT_SHADER); err != nil {
+		return nil, err
+	}
 
-	gl.LinkProgram(s.ID)
-	gl.ValidateProgram(s.ID)
+	s.id = gl.CreateProgram()
+	gl.AttachShader(s.id, s.vertexShaderID)
+	gl.AttachShader(s.id, s.fragmentShaderID)
 
-	gl.DetachShader(s.ID, s.vertexShaderID)
-	gl.DetachShader(s.ID, s.fragmentShaderID)
+	gl.LinkProgram(s.id)
+	gl.ValidateProgram(s.id)
+
+	gl.DetachShader(s.id, s.vertexShaderID)
+	gl.DetachShader(s.id, s.fragmentShaderID)
 
 	return s, nil
 }
 
-//getUniformLocation returns the location of the uniform given, returning the OpenGL id as an int32
-func (sp ShaderProgram) getUniformLocation(name string) int32 {
-	return gl.GetUniformLocation(sp.ID, gl.Str(name+"\x00"))
+//GetUniformLocation returns the location of the uniform given, returning the OpenGL id as an int32
+func GetUniformLocation(s ShaderComponent, name string) int32 {
+	return gl.GetUniformLocation(s.id, gl.Str(name+"\x00"))
 }
 
 //LoadFloat loads a uniform float into the shader
-func (sp ShaderProgram) LoadFloat(name string, value float32) {
-	loc := sp.getUniformLocation(name)
+func LoadFloat(s ShaderComponent, name string, value float32) {
+	loc := GetUniformLocation(s, name)
 	gl.Uniform1f(loc, value)
 }
 
 //LoadVec3 loads a uniform Vector into the shader
-func (sp ShaderProgram) LoadVec3(name string, value mgl32.Vec3) {
-	loc := sp.getUniformLocation(name)
+func LoadVec3(s ShaderComponent, name string, value [3]float32) {
+	loc := GetUniformLocation(s, name)
 	gl.Uniform3f(loc, value[0], value[1], value[2])
 }
 
 //LoadBool loads a boolean into the shader
-func (sp ShaderProgram) LoadBool(name string, value bool) {
-	loc := sp.getUniformLocation(name)
+func LoadBool(s ShaderComponent, name string, value bool) {
+	loc := GetUniformLocation(s, name)
 	var float float32
 	if value {
 		float = 1
@@ -73,41 +78,24 @@ func (sp ShaderProgram) LoadBool(name string, value bool) {
 }
 
 //LoadMat loads a matrix into the shader
-func (sp ShaderProgram) LoadMat(name string, value mgl32.Mat4) {
-	loc := sp.getUniformLocation(name)
+func LoadMat(s ShaderComponent, name string, value [16]float32) {
+	loc := GetUniformLocation(s, name)
 	gl.UniformMatrix4fv(loc, 1, false, &value[0])
 }
 
 //Start starts the shader program
-func (sp ShaderProgram) Start() {
-	gl.UseProgram(sp.ID)
+func Start(s ShaderComponent) {
+	gl.UseProgram(s.id)
 }
 
 //Stop stops the shader program
-func (sp ShaderProgram) Stop() {
+func Stop() {
 	gl.UseProgram(0)
 }
 
 //CleanUp deletes the program
-func (sp ShaderProgram) CleanUp() {
-	gl.DeleteProgram(sp.ID)
-}
-
-//LoadShader loads a shader file from system and compiles it
-func loadShaderFromFile(fileName string, shaderType uint32) (uint32, error) {
-	file, err := os.Open(fileName)
-	if err != nil {
-		return 0, err
-	}
-	defer file.Close()
-
-	source, err := ioutil.ReadAll(file)
-	if err != nil {
-		return 0, err
-	}
-
-	id, err := compileShader(string(source)+"\x00", shaderType)
-	return id, err
+func CleanUp(s ShaderComponent) {
+	gl.DeleteProgram(s.id)
 }
 
 func compileShader(source string, shaderType uint32) (uint32, error) {

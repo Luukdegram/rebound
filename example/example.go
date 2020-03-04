@@ -7,8 +7,8 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/luukdegram/rebound"
 	"github.com/luukdegram/rebound/display"
+	"github.com/luukdegram/rebound/ecs"
 	"github.com/luukdegram/rebound/importers"
-	"github.com/luukdegram/rebound/models"
 	"github.com/luukdegram/rebound/shaders"
 )
 
@@ -32,34 +32,32 @@ func main() {
 		panic(err)
 	}
 	defer window.Close()
+	defer rebound.CleanUp()
 
-	geo, err := importers.LoadGltfModel("gltf_objects/avacado.gltf")
+	manager := ecs.GetManager()
+	renderer := rebound.NewRenderSystem()
+	manager.AddSystems(renderer)
+
+	entity, err := importers.LoadGltfModel("gltf_objects/avacado.gltf")
 	if err != nil {
 		panic(err)
 	}
 
-	shader, err := shaders.NewShaderProgram("shaders/vertexShader.vert", "shaders/fragmentShader.frag")
+	sc, err := shaders.NewShaderComponent(shaders.VertexShader, shaders.FragmentShader)
 	if err != nil {
 		panic(err)
 	}
-	renderer := rebound.NewRenderer()
+	for _, e := range entity.Children() {
+		e.AddComponent(sc)
+	}
+	renderer.AddEntities(renderer, entity.Children()...)
+
 	renderer.NewCamera(width, height)
 	renderer.NewLight(mgl32.Vec3{3000, 2000, 2000})
 	renderer.SetSkyColor(0.5, 0.5, 0.5)
 
-	entity := rebound.NewEntity()
-	entity.Geometry = geo
-
-	texture, err := rebound.LoadTexture("textures/grass2.png")
-	if err != nil {
-		panic(err)
-	}
-
-	terr2 := rebound.NewTerrain(-1, 0, models.NewModelTexture(texture))
-
-	renderer.Camera.Pos[2] = 1
+	renderer.Camera.Pos[2] = 1.5
 	renderer.Camera.Pos[1] = 0.1
-	//renderer.Camera.Pitch = 30
 
 	window.RegisterKeyboardHandler(display.KeyP, func() {
 		renderer.TogglePolygons()
@@ -70,12 +68,9 @@ func main() {
 	})
 
 	for !window.ShouldClose() {
-		entity.Rotate(mgl32.Vec3{0, 1, 0})
+		manager.Update(1)
 
-		renderer.RegisterEntity(entity, terr2)
-		renderer.Render(*shader)
 		window.Update()
 	}
-	shader.CleanUp()
-	rebound.CleanUp()
+	shaders.CleanUp(*sc)
 }
