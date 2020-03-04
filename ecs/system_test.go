@@ -20,19 +20,13 @@ func (t *TestComponent) Name() string {
 	return componentName
 }
 
-type TestChecker struct{}
-
-func (t *TestChecker) Check(e *Entity) bool {
-	return e.HasComponent(componentName)
-}
-
 func TestAddEntity(t *testing.T) {
 	var expect, result int = 1, 0
 
 	ts := &TestSystem{
 		NewBaseSystem(),
 	}
-	ts.AddEntities(&TestChecker{}, testEntity)
+	ts.AddEntities(testEntity)
 
 	result = len(ts.Entities())
 
@@ -47,7 +41,7 @@ func TestRemoveEntity(t *testing.T) {
 	ts := &TestSystem{
 		NewBaseSystem(),
 	}
-	ts.AddEntities(&TestChecker{}, testEntity)
+	ts.AddEntities(testEntity)
 
 	ts.RemoveEntity(testEntity)
 

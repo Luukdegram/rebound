@@ -6,6 +6,7 @@ import (
 
 	"github.com/luukdegram/rebound"
 	"github.com/luukdegram/rebound/ecs"
+	"github.com/luukdegram/rebound/shaders"
 
 	"github.com/qmuntal/gltf"
 )
@@ -53,7 +54,11 @@ func LoadGltfModel(file string) (*ecs.Entity, error) {
 		}
 
 		rc := rebound.LoadToVAO(indices, attributes)
-		entity.AddChild(ecs.NewEntity(rc, tc))
+		sc, err := shaders.NewShaderComponent(shaders.VertexShader, shaders.FragmentShader)
+		if err != nil {
+			return nil, err
+		}
+		entity.AddChild(ecs.NewEntity(rc, tc, sc))
 	}
 
 	return entity, nil

@@ -98,7 +98,7 @@ func (e *Entity) RemoveComponent(c Component) {
 }
 
 //Component returns a [Component] based on its name
-//This returns false if a [Component] does not exist
+//This returns nil if a [Component] does not exist
 func (e *Entity) Component(name string) Component {
 	e.m.RLock()
 	val, _ := e.components[name]

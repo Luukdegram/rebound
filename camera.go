@@ -9,11 +9,11 @@ type Camera struct {
 }
 
 //Move moves the camera around the 3D world given the input
-func (c *Camera) Move(vec mgl32.Vec3) {
-	c.Pos = c.Pos.Add(vec)
+func (c *Camera) Move(x, y, z float32) {
+	c.Pos = c.Pos.Add([3]float32{x, y, z})
 }
 
 //MoveTo moves the camera to the 3D point
-func (c *Camera) MoveTo(vec mgl32.Vec3) {
-	c.Pos = vec
+func (c *Camera) MoveTo(x, y, z float32) {
+	c.Pos = [3]float32{x, y, z}
 }

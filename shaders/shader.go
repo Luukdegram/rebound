@@ -10,6 +10,8 @@ import (
 //ShaderComponentName is the name of the ShaderComponent
 const ShaderComponentName string = "ShaderComponent"
 
+var shaderIds []uint32
+
 //ShaderComponent holds the data a ShaderProgram requires to use given shader
 type ShaderComponent struct {
 	id               uint32
@@ -88,18 +90,21 @@ func Start(s ShaderComponent) {
 	gl.UseProgram(s.id)
 }
 
-//Stop stops the shader program
+//Stop stops the current shader program
 func Stop() {
 	gl.UseProgram(0)
 }
 
 //CleanUp deletes the program
-func CleanUp(s ShaderComponent) {
-	gl.DeleteProgram(s.id)
+func CleanUp() {
+	for _, id := range shaderIds {
+		gl.DeleteProgram(id)
+	}
 }
 
 func compileShader(source string, shaderType uint32) (uint32, error) {
 	shader := gl.CreateShader(shaderType)
+	shaderIds = append(shaderIds, shader)
 
 	csources, free := gl.Strs(source)
 	gl.ShaderSource(shader, 1, csources, nil)

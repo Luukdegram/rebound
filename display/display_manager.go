@@ -46,7 +46,7 @@ func Default() Manager {
 //GLFWManager handles the GLFW window
 type GLFWManager struct {
 	w    *glfw.Window
-	size *Size
+	size Size
 }
 
 //NewGLFWManager creates a new GLFWManager struct
@@ -76,7 +76,7 @@ func (g *GLFWManager) Init(width int, height int, title string) error {
 
 	window.MakeContextCurrent()
 	g.w = window
-	g.size = &Size{Width: width, Height: height}
+	g.size = Size{Width: width, Height: height}
 
 	// initOpenGL initializes OpenGL
 	if err := gl.Init(); err != nil {
@@ -131,5 +131,5 @@ func (g *GLFWManager) Update() {
 
 //GetSize returns the size of the window
 func (g *GLFWManager) GetSize() Size {
-	return *g.size
+	return g.size
 }

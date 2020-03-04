@@ -9,17 +9,11 @@ type System interface {
 	//Update is run on every system to update the entities
 	Update(dt float32)
 	//AddEntities allow for 1 or more entities to be added to the system
-	AddEntities(EntityChecker, ...*Entity)
+	AddEntities(...*Entity)
 	//Entities returns a map of entities the system contains
 	Entities() map[int32]*Entity
 	//RemoveEntity removes a singular entity from the system
 	RemoveEntity(e *Entity)
-}
-
-//EntityChecker is an interface to allow for entity checking to see if they meet the system requirements
-type EntityChecker interface {
-	//Check returns true if an entity is valid for the current system. I.E. if it contains the needed components
-	Check(e *Entity) bool
 }
 
 //BaseSystem is a base implementation of [System]. However, requires an [Update] function to meet the requirements of the interface
@@ -38,11 +32,9 @@ func NewBaseSystem() BaseSystem {
 
 //AddEntities adds one or multiple entities to the system using the provided checker.
 //It only adds entities that meet the checker's requirements.
-func (bs *BaseSystem) AddEntities(ec EntityChecker, entities ...*Entity) {
+func (bs *BaseSystem) AddEntities(entities ...*Entity) {
 	for _, e := range entities {
-		if ec.Check(e) {
-			bs.entities[e.id] = e
-		}
+		bs.entities[e.id] = e
 	}
 
 }
