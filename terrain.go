@@ -1,10 +1,5 @@
 package rebound
 
-import (
-	"github.com/go-gl/mathgl/mgl32"
-	"github.com/luukdegram/rebound/models"
-)
-
 const (
 	terrainName = "Terrain"
 )
@@ -17,6 +12,7 @@ type terrain struct {
 	z           float32
 }
 
+/*
 //NewTerrain creates a new terrain with the given x and z axis
 func NewTerrain(x, z int, texture *models.ModelTexture) *Entity {
 	t := new(terrain)
@@ -89,3 +85,4 @@ func generateTerrain(t terrain, texture *models.ModelTexture) *Geometry {
 	}
 	return NewGeometry(*mesh)
 }
+*/

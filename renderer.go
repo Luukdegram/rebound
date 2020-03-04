@@ -106,7 +106,7 @@ func (rs *RenderSystem) Update(dt float32) {
 				rc.Renderable.Render(*e, sc, *rs.Camera)
 			}
 			prepareRenderable(*e)
-			gl.DrawElements(gl.TRIANGLES, int32(rc.vertexCount), gl.UNSIGNED_INT, gl.PtrOffset(0))
+			gl.DrawElements(gl.TRIANGLES, int32(rc.vertexCount), gl.UNSIGNED_INT, gl.Ptr(nil))
 			unbindRenderable(*e)
 		}
 		shaders.Stop()

@@ -23,7 +23,6 @@ func LoadGltfModel(file string) (*ecs.Entity, error) {
 	for _, mesh := range doc.Meshes {
 		indices := make([]uint32, 0, 0)
 		attributes := make([]rebound.Attribute, 0, 0)
-		m := rebound.NewMesh(mesh.Name)
 		var tc *rebound.TextureComponent
 
 		for _, primitive := range mesh.Primitives {
@@ -36,7 +35,6 @@ func LoadGltfModel(file string) (*ecs.Entity, error) {
 					accessor := doc.Accessors[index]
 					attribute := rebound.Attribute{Type: attTypes[name], Data: loadAccessorF32(doc, int(index)), Size: typeSizes[accessor.Type]}
 					attributes = append(attributes, attribute)
-					m.AddAttribute(attribute)
 				}
 			}
 
