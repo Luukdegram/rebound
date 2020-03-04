@@ -10,6 +10,9 @@ import (
 const (
 	// RenderComponentName is the name of a RenderComponent
 	RenderComponentName = "RenderComponent"
+)
+
+const (
 	//Pos is a shader attribute used for positional coordinates
 	Pos AttributeType = iota
 	//TexCoords is a shader attribute used for the coordinates of a texture
