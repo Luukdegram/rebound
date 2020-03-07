@@ -7,6 +7,9 @@ type TestSystem struct {
 }
 
 func (t *TestSystem) Update(dt float32) {}
+func (t *TestSystem) Name() string {
+	return "TestSystem"
+}
 
 type TestComponent struct{}
 
