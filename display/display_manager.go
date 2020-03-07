@@ -2,10 +2,10 @@ package display
 
 import (
 	"log"
-	"runtime"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
+	"github.com/luukdegram/rebound/internal/threading"
 )
 
 //Manager is an interface that can be implemented to handle the window using i.e. GLFW
@@ -28,7 +28,7 @@ type Size struct {
 //Key is type to hold a keyboard key regardless what window manager is used
 type Key int
 
-var glfwKeyToRKey = map[glfw.Key]Key{
+var glfwKeyToKey = map[glfw.Key]Key{
 	glfw.KeyP: KeyP,
 }
 
@@ -56,36 +56,36 @@ func NewGLFWManager() Manager {
 
 //Init initializes the GLFW window
 func (g *GLFWManager) Init(width int, height int, title string) error {
-	runtime.LockOSThread()
+	return threading.CallErr(func() error {
+		err := glfw.Init()
+		if err != nil {
+			return err
+		}
 
-	err := glfw.Init()
-	if err != nil {
-		return err
-	}
+		glfw.WindowHint(glfw.Resizable, glfw.False)
+		glfw.WindowHint(glfw.ContextVersionMajor, 4)
+		glfw.WindowHint(glfw.ContextVersionMinor, 1)
+		glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
+		glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
 
-	glfw.WindowHint(glfw.Resizable, glfw.False)
-	glfw.WindowHint(glfw.ContextVersionMajor, 4)
-	glfw.WindowHint(glfw.ContextVersionMinor, 1)
-	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
-	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
+		window, err := glfw.CreateWindow(width, height, title, nil, nil)
+		if err != nil {
+			panic(err)
+		}
 
-	window, err := glfw.CreateWindow(width, height, title, nil, nil)
-	if err != nil {
-		panic(err)
-	}
+		window.MakeContextCurrent()
+		g.w = window
+		g.size = Size{Width: width, Height: height}
 
-	window.MakeContextCurrent()
-	g.w = window
-	g.size = Size{Width: width, Height: height}
+		// initOpenGL initializes OpenGL
+		if err := gl.Init(); err != nil {
+			panic(err)
+		}
+		version := gl.GoStr(gl.GetString(gl.VERSION))
+		log.Println("OpenGL version", version)
 
-	// initOpenGL initializes OpenGL
-	if err := gl.Init(); err != nil {
-		panic(err)
-	}
-	version := gl.GoStr(gl.GetString(gl.VERSION))
-	log.Println("OpenGL version", version)
-
-	return nil
+		return nil
+	})
 }
 
 //KeyCallback is a function that can be triggered when a key is pressed
@@ -97,7 +97,7 @@ type ScrollCallback func(x, y float64)
 //RegisterKeyboardHandler registers a callback action to a certain key
 func (g *GLFWManager) RegisterKeyboardHandler(key Key, callback KeyCallback) {
 	fn := func(window *glfw.Window, glfwKey glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-		if key == glfwKeyToRKey[glfwKey] && action == glfw.Press {
+		if key == glfwKeyToKey[glfwKey] && action == glfw.Press {
 			callback()
 		}
 	}
@@ -120,13 +120,17 @@ func (g *GLFWManager) ShouldClose() bool {
 
 //Close closes the window and terminates GLFW
 func (g *GLFWManager) Close() {
-	glfw.Terminate()
+	threading.Call(func() {
+		glfw.Terminate()
+	})
 }
 
 //Update updates the current screen
 func (g *GLFWManager) Update() {
-	glfw.PollEvents()
-	g.w.SwapBuffers()
+	threading.Call(func() {
+		glfw.PollEvents()
+		g.w.SwapBuffers()
+	})
 }
 
 //GetSize returns the size of the window

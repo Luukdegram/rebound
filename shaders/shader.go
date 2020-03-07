@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/luukdegram/rebound/internal/threading"
 )
 
 //ShaderComponentName is the name of the ShaderComponent
@@ -30,26 +31,33 @@ func (sc *ShaderComponent) Name() string {
 func NewShaderComponent(vertexShader, fragmentShader string) (*ShaderComponent, error) {
 	var err error
 	s := &ShaderComponent{}
+	err = threading.CallErr(func() error {
+		if s.vertexShaderID, err = compileShader(vertexShader, gl.VERTEX_SHADER); err != nil {
+			return err
+		}
 
-	if s.vertexShaderID, err = compileShader(vertexShader+"\x00", gl.VERTEX_SHADER); err != nil {
-		return nil, err
-	}
+		shaderIds = append(shaderIds, s.vertexShaderID)
 
-	if s.fragmentShaderID, err = compileShader(fragmentShader+"\x00", gl.FRAGMENT_SHADER); err != nil {
-		return nil, err
-	}
+		if s.fragmentShaderID, err = compileShader(fragmentShader+"\x00", gl.FRAGMENT_SHADER); err != nil {
+			return err
+		}
 
-	s.id = gl.CreateProgram()
-	gl.AttachShader(s.id, s.vertexShaderID)
-	gl.AttachShader(s.id, s.fragmentShaderID)
+		shaderIds = append(shaderIds, s.fragmentShaderID)
 
-	gl.LinkProgram(s.id)
-	gl.ValidateProgram(s.id)
+		s.id = gl.CreateProgram()
+		gl.AttachShader(s.id, s.vertexShaderID)
+		gl.AttachShader(s.id, s.fragmentShaderID)
 
-	gl.DetachShader(s.id, s.vertexShaderID)
-	gl.DetachShader(s.id, s.fragmentShaderID)
+		gl.LinkProgram(s.id)
+		gl.ValidateProgram(s.id)
 
-	return s, nil
+		gl.DetachShader(s.id, s.vertexShaderID)
+		gl.DetachShader(s.id, s.fragmentShaderID)
+
+		return nil
+	})
+
+	return s, err
 }
 
 //GetUniformLocation returns the location of the uniform given, returning the OpenGL id as an int32
@@ -97,14 +105,15 @@ func Stop() {
 
 //CleanUp deletes the program
 func CleanUp() {
-	for _, id := range shaderIds {
-		gl.DeleteProgram(id)
-	}
+	threading.Call(func() {
+		for _, id := range shaderIds {
+			gl.DeleteProgram(id)
+		}
+	})
 }
 
 func compileShader(source string, shaderType uint32) (uint32, error) {
 	shader := gl.CreateShader(shaderType)
-	shaderIds = append(shaderIds, shader)
 
 	csources, free := gl.Strs(source)
 	gl.ShaderSource(shader, 1, csources, nil)
@@ -122,6 +131,5 @@ func compileShader(source string, shaderType uint32) (uint32, error) {
 
 		return 0, fmt.Errorf("failed to compile %v: %v", source, log)
 	}
-
 	return shader, nil
 }

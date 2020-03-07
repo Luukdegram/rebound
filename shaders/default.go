@@ -45,7 +45,7 @@ const (
 		frag_colour = vec4(diffuse, 1.0) * textureColor + vec4(finalSpecular, 1.0);
 		frag_colour = mix(vec4(skyColour, 1.0), frag_colour, visibility);
 	}
-	`
+	` + "\x00"
 
 	//VertexShader is a default vertex shader.
 	//It allows visibility turn on/off, a camera and fake lighting
@@ -90,5 +90,5 @@ const (
 		float dist = abs(positionRelativeToCam.z);
 		visibility = exp(-pow(dist*density, gradient));
 		visibility = clamp(visibility, 0.0, 1.0);
-	}`
+	}` + "\x00"
 )

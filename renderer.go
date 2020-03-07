@@ -4,6 +4,7 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/luukdegram/rebound/ecs"
+	"github.com/luukdegram/rebound/internal/threading"
 	"github.com/luukdegram/rebound/shaders"
 )
 
@@ -76,7 +77,7 @@ func NewRenderSystem() *RenderSystem {
 		drawPolygon: false,
 		skyColor:    mgl32.Vec3{0, 0, 0},
 	}
-	enableCulling()
+	threading.Call(enableCulling)
 	return rs
 }
 
@@ -87,33 +88,40 @@ func (rs *RenderSystem) Check(e *ecs.Entity) bool {
 
 //Update draws all entities within a RendererSystem
 func (rs *RenderSystem) Update(dt float32) {
-	rs.prepare()
-	for _, e := range rs.BaseSystem.Entities() {
-		if !rs.Check(e) {
-			continue
-		}
-
-		sc := *e.Component(shaders.ShaderComponentName).(*shaders.ShaderComponent)
-		shaders.Start(sc)
-		shaders.LoadVec3(sc, "lightPos", rs.Light.Position)
-		shaders.LoadVec3(sc, "lightColour", rs.Light.Colour)
-		shaders.LoadVec3(sc, "skyColour", rs.skyColor)
-
-		if rs.Camera != nil {
-			shaders.LoadMat(sc, "projectionMatrix", *rs.pm)
-			shaders.LoadMat(sc, "viewMatrix", NewViewMatrix(*rs.Camera))
-		}
-
-		if rc := e.Component(RenderComponentName).(*RenderComponent); rc != nil {
-			if rc.Renderable != nil {
-				rc.Renderable.Render(*e, sc, *rs.Camera)
+	threading.Call(func() {
+		rs.prepare()
+		for _, e := range rs.BaseSystem.Entities() {
+			if !rs.Check(e) {
+				continue
 			}
-			prepareRenderable(*e)
-			gl.DrawElements(gl.TRIANGLES, int32(rc.vertexCount), gl.UNSIGNED_INT, gl.Ptr(nil))
-			unbindRenderable(*e)
+
+			sc := *e.Component(shaders.ShaderComponentName).(*shaders.ShaderComponent)
+			shaders.Start(sc)
+			shaders.LoadVec3(sc, "lightPos", rs.Light.Position)
+			shaders.LoadVec3(sc, "lightColour", rs.Light.Colour)
+			shaders.LoadVec3(sc, "skyColour", rs.skyColor)
+
+			if rs.Camera != nil {
+				shaders.LoadMat(sc, "projectionMatrix", *rs.pm)
+				shaders.LoadMat(sc, "viewMatrix", NewViewMatrix(*rs.Camera))
+			}
+
+			if rc := e.Component(RenderComponentName).(*RenderComponent); rc != nil {
+				if rc.Renderable != nil {
+					rc.Renderable.Render(*e, sc, *rs.Camera)
+				}
+				prepareRenderable(*e)
+				gl.DrawElements(gl.TRIANGLES, int32(rc.vertexCount), gl.UNSIGNED_INT, gl.Ptr(nil))
+				unbindRenderable(*e)
+			}
+			shaders.Stop()
 		}
-		shaders.Stop()
-	}
+	})
+}
+
+// Name returns the name of the rendering system
+func (rs *RenderSystem) Name() string {
+	return "RenderSystem"
 }
 
 // Name returns the RenderComponent name

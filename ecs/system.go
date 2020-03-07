@@ -14,6 +14,8 @@ type System interface {
 	Entities() map[int32]*Entity
 	//RemoveEntity removes a singular entity from the system
 	RemoveEntity(e *Entity)
+	//Name returns the name of the system
+	Name() string
 }
 
 //BaseSystem is a base implementation of [System]. However, requires an [Update] function to meet the requirements of the interface

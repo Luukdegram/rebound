@@ -28,7 +28,7 @@ func GetManager() *Manager {
 //Update handles the update of each [System] based on their priority
 func (m *Manager) Update(dt float32) {
 	for _, s := range m.systems {
-		s.Update(dt)
+		go s.Update(dt)
 	}
 }
 
