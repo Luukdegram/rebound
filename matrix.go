@@ -1,17 +1,15 @@
 package rebound
 
-import (
-	"github.com/go-gl/mathgl/mgl32"
-)
+import "github.com/go-gl/mathgl/mgl32"
 
 //NewTransformationMatrix returns a new transformation matrix, it translates, rotates and scales.
-func NewTransformationMatrix(trans mgl32.Vec3, rot mgl32.Vec3, scale float32) mgl32.Mat4 {
+func NewTransformationMatrix(trans [3]float64, rot [4]float64, scale [3]float64) mgl32.Mat4 {
 	mat := mgl32.Ident4()
-	translation := mgl32.Translate3D(trans[0], trans[1], trans[2])
-	rotX := mgl32.HomogRotate3DX(mgl32.DegToRad(rot[0]))
-	rotY := mgl32.HomogRotate3DY(mgl32.DegToRad(rot[1]))
-	rotZ := mgl32.HomogRotate3DZ(mgl32.DegToRad(rot[2]))
-	scaleMatrix := mgl32.Scale3D(scale, scale, scale)
+	translation := mgl32.Translate3D(float32(trans[0]), float32(trans[1]), float32(trans[2]))
+	rotX := mgl32.HomogRotate3DX(mgl32.DegToRad(float32(rot[0])))
+	rotY := mgl32.HomogRotate3DY(mgl32.DegToRad(float32(rot[1])))
+	rotZ := mgl32.HomogRotate3DZ(mgl32.DegToRad(float32(rot[2])))
+	scaleMatrix := mgl32.Scale3D(float32(scale[0]), float32(scale[1]), float32(scale[2]))
 
 	return mat.Add(translation).Mul4(rotX).Mul4(rotY).Mul4(rotZ).Mul4(scaleMatrix)
 }

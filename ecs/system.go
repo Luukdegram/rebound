@@ -7,7 +7,7 @@ import (
 //System handles updates on entities based on the components they withold
 type System interface {
 	//Update is run on every system to update the entities
-	Update(dt float32)
+	Update(dt float64)
 	//AddEntities allow for 1 or more entities to be added to the system
 	AddEntities(...*Entity)
 	//Entities returns a map of entities the system contains

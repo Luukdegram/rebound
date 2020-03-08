@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
-	"github.com/luukdegram/rebound/internal/threading"
+	"github.com/luukdegram/rebound/internal/thread"
 )
 
 //Manager is an interface that can be implemented to handle the window using i.e. GLFW
@@ -56,7 +56,7 @@ func NewGLFWManager() Manager {
 
 //Init initializes the GLFW window
 func (g *GLFWManager) Init(width int, height int, title string) error {
-	return threading.CallErr(func() error {
+	return thread.CallErr(func() error {
 		err := glfw.Init()
 		if err != nil {
 			return err
@@ -120,14 +120,14 @@ func (g *GLFWManager) ShouldClose() bool {
 
 //Close closes the window and terminates GLFW
 func (g *GLFWManager) Close() {
-	threading.Call(func() {
+	thread.Call(func() {
 		glfw.Terminate()
 	})
 }
 
 //Update updates the current screen
 func (g *GLFWManager) Update() {
-	threading.Call(func() {
+	thread.Call(func() {
 		glfw.PollEvents()
 		g.w.SwapBuffers()
 	})

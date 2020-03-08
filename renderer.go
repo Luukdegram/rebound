@@ -4,7 +4,7 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/luukdegram/rebound/ecs"
-	"github.com/luukdegram/rebound/internal/threading"
+	"github.com/luukdegram/rebound/internal/thread"
 	"github.com/luukdegram/rebound/shaders"
 )
 
@@ -14,14 +14,22 @@ const (
 )
 
 const (
-	//Pos is a shader attribute used for positional coordinates
-	Pos AttributeType = iota
-	//TexCoords is a shader attribute used for the coordinates of a texture
-	TexCoords
-	//Normals holds the coordinates of a normal texture
-	Normals
-	//Tangents holds the tangets data in a shader
-	Tangents
+	//POSITION is a shader attribute used for positional coordinates
+	POSITION AttributeType = iota
+	//TEXCOORDS0 is a shader attribute used for the coordinates of a base texture
+	TEXCOORDS0
+	//TEXCOORDS1 is a shader attribute used for the coordinates of a second base texture
+	TEXCOORDS1
+	//NORMALS holds the coordinates of a normal texture
+	NORMALS
+	//TANGENTS holds the tangets data in a shader
+	TANGENTS
+	//COLOR holds the color data of a base texture
+	COLOR
+	//JOINTS holds the joints data of a skinned mesh
+	JOINTS
+	//WEIGHTS holds the weights data of a skinned mesh
+	WEIGHTS
 )
 
 //RenderSystem handles the rendering of all entities
@@ -77,20 +85,21 @@ func NewRenderSystem() *RenderSystem {
 		drawPolygon: false,
 		skyColor:    mgl32.Vec3{0, 0, 0},
 	}
-	threading.Call(enableCulling)
+	thread.Call(enableCulling)
 	return rs
 }
 
 //Check returns true if the given Entity contains both a ShaderComponent and RenderComponent
 func (rs *RenderSystem) Check(e *ecs.Entity) bool {
-	return e.HasComponent(shaders.ShaderComponentName) && e.HasComponent(RenderComponentName)
+	return e.HasComponent(SceneComponentName)
 }
 
 //Update draws all entities within a RendererSystem
-func (rs *RenderSystem) Update(dt float32) {
-	threading.Call(func() {
+func (rs *RenderSystem) Update(dt float64) {
+	thread.Call(func() {
 		rs.prepare()
 		for _, e := range rs.BaseSystem.Entities() {
+			scene := e.Component(SceneComponentName).(*SceneComponent)
 			if !rs.Check(e) {
 				continue
 			}
@@ -106,13 +115,8 @@ func (rs *RenderSystem) Update(dt float32) {
 				shaders.LoadMat(sc, "viewMatrix", NewViewMatrix(*rs.Camera))
 			}
 
-			if rc := e.Component(RenderComponentName).(*RenderComponent); rc != nil {
-				if rc.Renderable != nil {
-					rc.Renderable.Render(*e, sc, *rs.Camera)
-				}
-				prepareRenderable(*e)
-				gl.DrawElements(gl.TRIANGLES, int32(rc.vertexCount), gl.UNSIGNED_INT, gl.Ptr(nil))
-				unbindRenderable(*e)
+			for _, node := range scene.Nodes {
+				renderNode(node, sc)
 			}
 			shaders.Stop()
 		}
@@ -177,35 +181,48 @@ func disableCulling() {
 	gl.Disable(gl.CULL_FACE)
 }
 
-func prepareRenderable(e ecs.Entity) {
-	rc := e.Component(RenderComponentName).(*RenderComponent)
-	sc := *e.Component(shaders.ShaderComponentName).(*shaders.ShaderComponent)
-	gl.BindVertexArray(rc.vaoID)
+func renderNode(n *Node, s shaders.ShaderComponent) {
+	if n.Mesh != nil {
+		prepareNode(n.Mesh, s)
+		shaders.LoadMat(s, "transformMatrix", n.Transformation)
+		gl.DrawElements(gl.TRIANGLES, int32(n.Mesh.VertexCount()), gl.UNSIGNED_INT, gl.Ptr(nil))
+		unbindNode(n.Mesh)
+	}
 
-	for _, a := range rc.attributes {
+	if len(n.Children) > 0 {
+		for _, node := range n.Children {
+			renderNode(node, s)
+		}
+	}
+}
+
+func prepareNode(m *Mesh, s shaders.ShaderComponent) {
+	gl.BindVertexArray(m.ID)
+	for _, a := range m.Attributes {
 		gl.EnableVertexAttribArray(uint32(a.Type))
 	}
 
-	if e.HasComponent(TextureComponentName) {
-		tc := e.Component(TextureComponentName).(*TextureComponent)
-		if tc.Transparant {
-			disableCulling()
+	if m.Material != nil {
+		if m.Material.BaseColorTexture != nil {
+			tc := m.Material.BaseColorTexture
+			if tc.Transparant {
+				disableCulling()
+			}
+
+			shaders.LoadBool(s, "useFakeLighting", tc.Transparant)
+			shaders.LoadFloat(s, "shineDamper", tc.ShineDamper)
+			shaders.LoadFloat(s, "reflectivity", tc.Reflectivity)
+			gl.BindTexture(gl.TEXTURE_2D, tc.id)
 		}
 
-		shaders.LoadBool(sc, "useFakeLighting", tc.Transparant)
-		shaders.LoadFloat(sc, "shineDamper", tc.ShineDamper)
-		shaders.LoadFloat(sc, "reflectivity", tc.Reflectivity)
-		gl.BindTexture(gl.TEXTURE_2D, tc.id)
+		//gl.Bind
 	}
 
-	transform := NewTransformationMatrix(rc.Position, rc.Rotation, rc.Scale)
-	shaders.LoadMat(sc, "transformMatrix", transform)
 }
 
-func unbindRenderable(e ecs.Entity) {
+func unbindNode(m *Mesh) {
 	enableCulling()
-	rc := e.Component(RenderComponentName).(*RenderComponent)
-	for _, a := range rc.attributes {
+	for _, a := range m.Attributes {
 		gl.DisableVertexAttribArray(uint32(a.Type))
 	}
 	gl.BindVertexArray(0)

@@ -5,72 +5,129 @@ import (
 	"unsafe"
 
 	"github.com/luukdegram/rebound"
-	"github.com/luukdegram/rebound/ecs"
-	"github.com/luukdegram/rebound/shaders"
 
 	"github.com/qmuntal/gltf"
 )
 
-//LoadGltfModel imports a GLTF file into a model
-func LoadGltfModel(file string) (*ecs.Entity, error) {
+// GLTFImporter loads a gltf file into Rebound to create a visual object.
+type GLTFImporter struct {
+	Dir string
+	Doc *gltf.Document
+}
+
+// Import loads a GLTF file into a Scene.
+func (l *GLTFImporter) Import(file string) (*rebound.SceneComponent, error) {
 	doc, err := gltf.Open(file)
 	if err != nil {
 		return nil, err
 	}
+	l.Doc = doc
 
 	dir := path.Dir(file)
-	entity := ecs.NewEntity()
+	scene := &rebound.SceneComponent{
+		Nodes: make([]*rebound.Node, 0),
+	}
+	l.Dir = dir
 
-	for _, mesh := range doc.Meshes {
-		indices := make([]uint32, 0, 0)
-		attributes := make([]rebound.Attribute, 0, 0)
-		var tc *rebound.TextureComponent
-
-		for _, primitive := range mesh.Primitives {
-			if primitive.Indices != nil {
-				indices = append(indices, loadIndices(doc, int(*primitive.Indices))...)
-			}
-
-			if len(primitive.Attributes) > 0 {
-				for name, index := range primitive.Attributes {
-					accessor := doc.Accessors[index]
-					attribute := rebound.Attribute{Type: attTypes[name], Data: loadAccessorF32(doc, int(index)), Size: typeSizes[accessor.Type]}
-					attributes = append(attributes, attribute)
-				}
-			}
-
-			if primitive.Material != nil {
-				if doc.Materials[*primitive.Material].PBRMetallicRoughness.BaseColorTexture != nil {
-					textureSource := doc.Textures[(doc.Materials[*primitive.Material].PBRMetallicRoughness.BaseColorTexture).Index].Source
-					texID, err := rebound.LoadTexture(dir + "/" + doc.Images[*textureSource].URI)
-					if err != nil {
-						return nil, err
-					}
-
-					tc = rebound.NewTextureComponent(texID)
-				}
-			}
-
-		}
-
-		rc := rebound.LoadToVAO(indices, attributes)
-		sc, err := shaders.NewShaderComponent(shaders.VertexShader, shaders.FragmentShader)
-		if err != nil {
+	for _, rootNodeIndex := range doc.Scenes[*doc.Scene].Nodes {
+		var node *rebound.Node
+		if node, err = l.buildNode(doc.Nodes[rootNodeIndex]); err != nil {
 			return nil, err
 		}
-		entity.AddChild(ecs.NewEntity(rc, tc, sc))
+
+		scene.Nodes = append(scene.Nodes, node)
 	}
 
-	return entity, nil
+	return scene, nil
 }
 
-func loadIndices(doc *gltf.Document, index int) []uint32 {
-	return loadAccessorU32(doc, index)
+func (l *GLTFImporter) buildNode(n gltf.Node) (*rebound.Node, error) {
+	var err error
+	// Create a node with defailt values if no values exist
+	node := &rebound.Node{
+		Name: n.Name,
+	}
+
+	if n.Matrix == emptyMatrix {
+		node.Transformation = rebound.NewTransformationMatrix(
+			n.TranslationOrDefault(),
+			n.RotationOrDefault(),
+			n.ScaleOrDefault(),
+		)
+	} else {
+		node.Transformation = toFloat32Array(n.Matrix)
+	}
+
+	// Build a mesh
+	if n.Mesh != nil {
+		if node.Mesh, err = l.buildMesh(l.Doc.Meshes[*n.Mesh]); err != nil {
+			return nil, err
+		}
+	}
+
+	// Create children recursively
+	if len(n.Children) > 0 {
+		for _, child := range n.Children {
+			var childNode *rebound.Node
+			if childNode, err = l.buildNode(l.Doc.Nodes[child]); err != nil {
+				return nil, err
+			}
+			node.Children = append(node.Children, childNode)
+		}
+	}
+
+	return node, nil
 }
 
-func loadAccessorF32(doc *gltf.Document, index int) []float32 {
-	accessor := doc.Accessors[index]
-	data := loadAccessorData(doc, accessor)
+func (l *GLTFImporter) buildMesh(m gltf.Mesh) (*rebound.Mesh, error) {
+	mesh := &rebound.Mesh{
+		Attributes: make([]rebound.Attribute, 0),
+		Indices:    make([]uint32, 0),
+	}
+
+	for _, primitive := range m.Primitives {
+		// Load the indices into the mesh
+		if primitive.Indices != nil {
+			mesh.Indices = append(mesh.Indices, l.loadAccessorU32(int(*primitive.Indices))...)
+		}
+
+		// Load the attributes into the mesh such as Normals, texturecoords, etc
+		if len(primitive.Attributes) > 0 {
+			for name, index := range primitive.Attributes {
+				accessor := l.Doc.Accessors[index]
+				attribute := rebound.Attribute{Type: attTypes[name], Data: l.loadAccessorF32(int(index)), Size: typeSizes[accessor.Type]}
+				mesh.Attributes = append(mesh.Attributes, attribute)
+			}
+		}
+
+		// Set the material of a mesh
+		if primitive.Material != nil {
+			material := &rebound.Material{}
+			if l.Doc.Materials[*primitive.Material].PBRMetallicRoughness.BaseColorTexture != nil {
+				textureSource := l.Doc.Textures[(l.Doc.Materials[*primitive.Material].PBRMetallicRoughness.BaseColorTexture).Index].Source
+				texID, err := rebound.LoadTexture(l.Dir + "/" + l.Doc.Images[*textureSource].URI)
+				if err != nil {
+					return nil, err
+				}
+				material.BaseColorTexture = rebound.NewTextureComponent(texID)
+			}
+
+			rgba := l.Doc.Materials[*primitive.Material].PBRMetallicRoughness.BaseColorFactor
+			material.BaseColor = [4]float32{float32(rgba.A), float32(rgba.R), float32(rgba.G), float32(rgba.B)}
+			mesh.Material = material
+		}
+	}
+
+	// Load the mesh into the GPU
+	rebound.LoadToVAO(mesh)
+
+	return mesh, nil
+}
+
+// loadAccessorF32 loads the float32 values from the buffer
+func (l *GLTFImporter) loadAccessorF32(index int) []float32 {
+	accessor := l.Doc.Accessors[index]
+	data := l.loadAccessorData(accessor)
 	count := int(accessor.Count) * typeSizes[accessor.Type]
 	out := make([]float32, count, count)
 	switch accessor.ComponentType {
@@ -91,9 +148,10 @@ func loadAccessorF32(doc *gltf.Document, index int) []float32 {
 	return out
 }
 
-func loadAccessorU32(doc *gltf.Document, index int) []uint32 {
-	accessor := doc.Accessors[index]
-	data := loadAccessorData(doc, accessor)
+// loadAccessorU32 loads the uint32 values from the buffer
+func (l *GLTFImporter) loadAccessorU32(index int) []uint32 {
+	accessor := l.Doc.Accessors[index]
+	data := l.loadAccessorData(accessor)
 	count := int(accessor.Count) * typeSizes[accessor.Type]
 	out := make([]uint32, count, count)
 	switch accessor.ComponentType {
@@ -114,12 +172,14 @@ func loadAccessorU32(doc *gltf.Document, index int) []uint32 {
 	return out
 }
 
-func loadAccessorData(doc *gltf.Document, accessor gltf.Accessor) []uint8 {
-	bv := doc.BufferViews[*accessor.BufferView]
-	buffer := doc.Buffers[bv.Buffer]
+// loadAccessorData loads data from an accessor inside the buffer view
+func (l *GLTFImporter) loadAccessorData(accessor gltf.Accessor) []uint8 {
+	bv := l.Doc.BufferViews[*accessor.BufferView]
+	buffer := l.Doc.Buffers[bv.Buffer]
 	return buffer.Data[bv.ByteOffset : bv.ByteOffset+bv.ByteLength]
 }
 
+// typeSizes returns the size of each type
 var typeSizes = map[gltf.AccessorType]int{
 	gltf.Scalar: 1,
 	gltf.Vec2:   2,
@@ -130,9 +190,26 @@ var typeSizes = map[gltf.AccessorType]int{
 	gltf.Mat4:   16,
 }
 
+// attTypes returns the Rebound attribute type based on the GLTF attribute string
 var attTypes = map[string]rebound.AttributeType{
-	"TEXCOORD_0": rebound.TexCoords,
-	"NORMAL":     rebound.Normals,
-	"TANGENT":    rebound.Tangents,
-	"POSITION":   rebound.Pos,
+	"TEXCOORD_0": rebound.TEXCOORDS0,
+	"TEXCOORD_1": rebound.TEXCOORDS1,
+	"COLOR_0":    rebound.COLOR,
+	"JOINTS_0":   rebound.JOINTS,
+	"WEIGHTS_0":  rebound.WEIGHTS,
+	"NORMAL":     rebound.NORMALS,
+	"TANGENT":    rebound.TANGENTS,
+	"POSITION":   rebound.POSITION,
+}
+
+var emptyMatrix = [16]float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
+func toFloat32Array(input [16]float64) [16]float32 {
+	var result [16]float32
+
+	for index, f64 := range input {
+		result[index] = float32(f64)
+	}
+
+	return result
 }

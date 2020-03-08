@@ -6,10 +6,11 @@ import (
 	"image/draw"
 	"os"
 
-	_ "image/png" //Import png package to be able to decode png files
+	_ "image/jpeg" //Import jpg package to be able to decode jpg files
+	_ "image/png"  //Import png package to be able to decode png files
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/luukdegram/rebound/internal/threading"
+	"github.com/luukdegram/rebound/internal/thread"
 )
 
 var (
@@ -19,25 +20,18 @@ var (
 )
 
 //LoadToVAO test
-func LoadToVAO(indices []uint32, attributes []Attribute) *RenderComponent {
+func LoadToVAO(m *Mesh) {
 	var id uint32
-	threading.Call(func() {
+	thread.Call(func() {
 		id = createVAO()
-		bindIndicesBuffer(indices)
-		for _, attribute := range attributes {
+		bindIndicesBuffer(m.Indices)
+		for _, attribute := range m.Attributes {
 			storeDataInAttributeList(int(attribute.Type), attribute.Size, attribute.Data)
 		}
 		unbindVAO()
 	})
 
-	return &RenderComponent{
-		vaoID:       id,
-		vertexCount: len(indices),
-		attributes:  attributes,
-		Position:    [3]float32{0, 0, 0},
-		Rotation:    [3]float32{0, 0, 0},
-		Scale:       1.0,
-	}
+	m.ID = id
 }
 
 //LoadTexture loads a texture into the GPU
@@ -57,7 +51,7 @@ func LoadTexture(fileName string) (uint32, error) {
 	}
 	draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
 	var texture uint32
-	threading.Call(func() {
+	thread.Call(func() {
 		gl.GenTextures(1, &texture)
 		gl.BindTexture(gl.TEXTURE_2D, texture)
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
@@ -74,9 +68,9 @@ func LoadTexture(fileName string) (uint32, error) {
 			gl.RGBA,
 			gl.UNSIGNED_BYTE,
 			gl.Ptr(rgba.Pix))
-
-		textures = append(textures, texture)
 	})
+
+	textures = append(textures, texture)
 
 	return texture, nil
 }
@@ -112,7 +106,7 @@ func unbindVAO() {
 
 //CleanUp removes all loaded data from GPU to free up space.
 func CleanUp() {
-	threading.Call(func() {
+	thread.Call(func() {
 		for _, id := range vaos {
 			gl.DeleteVertexArrays(1, &id)
 		}

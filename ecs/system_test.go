@@ -6,7 +6,7 @@ type TestSystem struct {
 	BaseSystem
 }
 
-func (t *TestSystem) Update(dt float32) {}
+func (t *TestSystem) Update(dt float64) {}
 func (t *TestSystem) Name() string {
 	return "TestSystem"
 }

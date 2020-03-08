@@ -6,7 +6,7 @@ import (
 
 	"github.com/luukdegram/rebound/display"
 	"github.com/luukdegram/rebound/ecs"
-	"github.com/luukdegram/rebound/internal/threading"
+	"github.com/luukdegram/rebound/internal/thread"
 	"github.com/luukdegram/rebound/shaders"
 )
 
@@ -31,7 +31,7 @@ func Run(options RunOptions, setup func()) error {
 		}
 	}()
 
-	threading.Run(ctx)
+	thread.Run(ctx)
 	return <-ch
 }
 
@@ -48,7 +48,7 @@ func run(options RunOptions, setup func()) error {
 
 	st := time.Now()
 	for !window.ShouldClose() {
-		delta := float32(time.Now().Sub(st).Microseconds())
+		delta := time.Now().Sub(st).Seconds() * 1000
 		ecs.GetManager().Update(delta)
 		window.Update()
 		st = time.Now()
@@ -57,6 +57,6 @@ func run(options RunOptions, setup func()) error {
 	CleanUp()
 	shaders.CleanUp()
 	window.Close()
-	
+
 	return nil
 }

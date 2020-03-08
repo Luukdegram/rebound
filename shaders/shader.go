@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/luukdegram/rebound/internal/threading"
+	"github.com/luukdegram/rebound/internal/thread"
 )
 
 //ShaderComponentName is the name of the ShaderComponent
@@ -31,7 +31,7 @@ func (sc *ShaderComponent) Name() string {
 func NewShaderComponent(vertexShader, fragmentShader string) (*ShaderComponent, error) {
 	var err error
 	s := &ShaderComponent{}
-	err = threading.CallErr(func() error {
+	err = thread.CallErr(func() error {
 		if s.vertexShaderID, err = compileShader(vertexShader, gl.VERTEX_SHADER); err != nil {
 			return err
 		}
@@ -105,7 +105,7 @@ func Stop() {
 
 //CleanUp deletes the program
 func CleanUp() {
-	threading.Call(func() {
+	thread.Call(func() {
 		for _, id := range shaderIds {
 			gl.DeleteProgram(id)
 		}

@@ -53,8 +53,12 @@ const (
 	#version 410 core
 	layout (location = 0) in vec3 position;
 	layout (location = 1) in vec2 textureCoords;
-	layout (location = 2) in vec3 normal;
-	layout (location = 3) in vec4 tangent;
+	layout (location = 2) in vec2 textureCoords2;
+	layout (location = 3) in vec3 normal;
+	layout (location = 4) in vec4 tangents;
+	layout (location = 5) in vec4 color;
+	layout (location = 6) in vec4 joints;
+	layout (location = 7) in vec4 weights;
 	
 	out vec2 pass_textureCoords;
 	out vec3 surfaceNormal;
