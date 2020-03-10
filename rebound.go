@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/luukdegram/rebound/display"
 	"github.com/luukdegram/rebound/ecs"
+	"github.com/luukdegram/rebound/internal/display"
 	"github.com/luukdegram/rebound/internal/thread"
 	"github.com/luukdegram/rebound/shaders"
 )
