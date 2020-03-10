@@ -38,6 +38,7 @@ func (m *Mesh) VertexCount() int {
 
 // Material describes the look of a geometric object
 type Material struct {
+	Transparent      bool
 	NormalTexture    *TextureComponent
 	OcclusionTexture *TextureComponent
 	EmmisiveTexture  *TextureComponent

@@ -25,11 +25,18 @@ func (l *GLTFImporter) Import(file string) (*rebound.SceneComponent, error) {
 
 	dir := path.Dir(file)
 	scene := &rebound.SceneComponent{
-		Nodes: make([]*rebound.Node, 0),
+		Nodes: []*rebound.Node{},
 	}
 	l.Dir = dir
 
-	for _, rootNodeIndex := range doc.Scenes[*doc.Scene].Nodes {
+	var index int
+	if doc.Scene == nil {
+		index = 0
+	} else {
+		index = int(*doc.Scene)
+	}
+
+	for _, rootNodeIndex := range doc.Scenes[index].Nodes {
 		var node *rebound.Node
 		if node, err = l.buildNode(doc.Nodes[rootNodeIndex]); err != nil {
 			return nil, err
@@ -80,6 +87,7 @@ func (l *GLTFImporter) buildNode(n gltf.Node) (*rebound.Node, error) {
 }
 
 func (l *GLTFImporter) buildMesh(m gltf.Mesh) (*rebound.Mesh, error) {
+	var err error
 	mesh := &rebound.Mesh{
 		Attributes: make([]rebound.Attribute, 0),
 		Indices:    make([]uint32, 0),
@@ -102,19 +110,10 @@ func (l *GLTFImporter) buildMesh(m gltf.Mesh) (*rebound.Mesh, error) {
 
 		// Set the material of a mesh
 		if primitive.Material != nil {
-			material := &rebound.Material{}
-			if l.Doc.Materials[*primitive.Material].PBRMetallicRoughness.BaseColorTexture != nil {
-				textureSource := l.Doc.Textures[(l.Doc.Materials[*primitive.Material].PBRMetallicRoughness.BaseColorTexture).Index].Source
-				texID, err := rebound.LoadTexture(l.Dir + "/" + l.Doc.Images[*textureSource].URI)
-				if err != nil {
-					return nil, err
-				}
-				material.BaseColorTexture = rebound.NewTextureComponent(texID)
+			mat := l.Doc.Materials[*primitive.Material]
+			if mesh.Material, err = l.buildMaterial(mat); err != nil {
+				return nil, err
 			}
-
-			rgba := l.Doc.Materials[*primitive.Material].PBRMetallicRoughness.BaseColorFactor
-			material.BaseColor = [4]float32{float32(rgba.A), float32(rgba.R), float32(rgba.G), float32(rgba.B)}
-			mesh.Material = material
 		}
 	}
 
@@ -124,6 +123,35 @@ func (l *GLTFImporter) buildMesh(m gltf.Mesh) (*rebound.Mesh, error) {
 	return mesh, nil
 }
 
+func (l *GLTFImporter) buildMaterial(m gltf.Material) (*rebound.Material, error) {
+	material := &rebound.Material{
+		Transparent: m.DoubleSided,
+	}
+	if m.PBRMetallicRoughness.BaseColorTexture != nil {
+		texture := l.Doc.Textures[m.PBRMetallicRoughness.BaseColorTexture.Index]
+		texID, err := rebound.LoadTexture(l.Dir + "/" + l.Doc.Images[*texture.Source].URI)
+		if err != nil {
+			return nil, err
+		}
+		material.BaseColorTexture = rebound.NewTextureComponent(texID)
+
+		if texture.Sampler != nil {
+			s := l.Doc.Samplers[*texture.Sampler]
+			sampler := &rebound.Sampler{
+				MagFilter: uint16(s.MagFilter),
+				MinFilter: uint16(s.MinFilter),
+				WrapS:     uint16(s.WrapS),
+				WrapT:     uint16(s.WrapT),
+			}
+			material.BaseColorTexture.Sampler = sampler
+		}
+	}
+	rgba := m.PBRMetallicRoughness.BaseColorFactor
+	material.BaseColor = [4]float32{float32(rgba.A), float32(rgba.R), float32(rgba.G), float32(rgba.B)}
+
+	return material, nil
+}
+
 // loadAccessorF32 loads the float32 values from the buffer
 func (l *GLTFImporter) loadAccessorF32(index int) []float32 {
 	accessor := l.Doc.Accessors[index]
@@ -131,13 +159,15 @@ func (l *GLTFImporter) loadAccessorF32(index int) []float32 {
 	count := int(accessor.Count) * typeSizes[accessor.Type]
 	out := make([]float32, count, count)
 	switch accessor.ComponentType {
+	case gltf.Byte:
 	case gltf.UnsignedByte:
-		for i := 0; i < int(accessor.Count); i++ {
+		for i := 0; i < count; i++ {
 			out[i] = float32(data[i])
 		}
 		break
+	case gltf.Short:
 	case gltf.UnsignedShort:
-		for i := 0; i < int(accessor.Count); i++ {
+		for i := 0; i < count; i++ {
 			out[i] = float32(data[i*2]) + float32(data[i*2+1])*256
 		}
 		break
@@ -155,13 +185,15 @@ func (l *GLTFImporter) loadAccessorU32(index int) []uint32 {
 	count := int(accessor.Count) * typeSizes[accessor.Type]
 	out := make([]uint32, count, count)
 	switch accessor.ComponentType {
+	case gltf.Byte:
 	case gltf.UnsignedByte:
-		for i := 0; i < int(accessor.Count); i++ {
+		for i := 0; i < count; i++ {
 			out[i] = uint32(data[i])
 		}
 		break
+	case gltf.Short:
 	case gltf.UnsignedShort:
-		for i := 0; i < int(accessor.Count); i++ {
+		for i := 0; i < count; i++ {
 			out[i] = uint32(data[i*2]) + uint32(data[i*2+1])*256
 		}
 		break
@@ -176,7 +208,11 @@ func (l *GLTFImporter) loadAccessorU32(index int) []uint32 {
 func (l *GLTFImporter) loadAccessorData(accessor gltf.Accessor) []uint8 {
 	bv := l.Doc.BufferViews[*accessor.BufferView]
 	buffer := l.Doc.Buffers[bv.Buffer]
-	return buffer.Data[bv.ByteOffset : bv.ByteOffset+bv.ByteLength]
+	data := buffer.Data[bv.ByteOffset : bv.ByteOffset+bv.ByteLength]
+	if accessor.ByteOffset != 0 {
+		return data[accessor.ByteOffset:]
+	}
+	return data
 }
 
 // typeSizes returns the size of each type

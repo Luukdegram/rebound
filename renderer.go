@@ -58,9 +58,8 @@ type AttributeType int
 // RenderComponent holds the data to render an entity
 type RenderComponent struct {
 	Renderable
-	vaoID       uint32
-	vertexCount int
-	attributes  []Attribute
+	vaoID      uint32
+	attributes []Attribute
 	// Rotation holds the rotational data of the render object related to the 3D world
 	Rotation [3]float32
 	// Position holds the positional data of the render object related to the 3D world
@@ -79,7 +78,7 @@ type Renderable interface {
 func NewRenderSystem() *RenderSystem {
 	rs := &RenderSystem{
 		BaseSystem:  ecs.NewBaseSystem(),
-		FOV:         45,
+		FOV:         105,
 		NearPlane:   0.1,
 		FarPlane:    100,
 		drawPolygon: false,
@@ -203,19 +202,17 @@ func prepareNode(m *Mesh, s shaders.ShaderComponent) {
 	}
 
 	if m.Material != nil {
+		if m.Material.Transparent {
+			disableCulling()
+		}
+
 		if m.Material.BaseColorTexture != nil {
 			tc := m.Material.BaseColorTexture
-			if tc.Transparant {
-				disableCulling()
-			}
-
 			shaders.LoadBool(s, "useFakeLighting", tc.Transparant)
 			shaders.LoadFloat(s, "shineDamper", tc.ShineDamper)
 			shaders.LoadFloat(s, "reflectivity", tc.Reflectivity)
 			gl.BindTexture(gl.TEXTURE_2D, tc.id)
 		}
-
-		//gl.Bind
 	}
 
 }

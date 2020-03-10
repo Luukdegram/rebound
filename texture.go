@@ -7,7 +7,8 @@ const (
 
 //TextureComponent holds all data required to render a texture
 type TextureComponent struct {
-	id uint32
+	id      uint32
+	Sampler *Sampler
 	// ShineDamper is the amount of shine applied to the object
 	ShineDamper float32
 	// Reflectivity is the amount of light is reflected by the object
@@ -29,7 +30,15 @@ func NewTextureComponent(id uint32) *TextureComponent {
 		id:              id,
 		ShineDamper:     1000,
 		Reflectivity:    1,
-		Transparant:    false,
+		Transparant:     false,
 		UseFakeLighting: false,
 	}
+}
+
+// Sampler describes how to render a texture
+type Sampler struct {
+	MagFilter uint16
+	MinFilter uint16
+	WrapS     uint16
+	WrapT     uint16
 }

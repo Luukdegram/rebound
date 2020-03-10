@@ -91,8 +91,8 @@ const (
 		lightVec = lightPos - worldPos.xyz;
 		cameraVec = (inverse(viewMatrix) * vec4(0,0,0,1)).xyz - worldPos.xyz;
 	
-		float dist = abs(positionRelativeToCam.z);
-		visibility = exp(-pow(dist*density, gradient));
+		float dist = length(positionRelativeToCam.xyz);
+		visibility = exp(-pow((dist*density), gradient));
 		visibility = clamp(visibility, 0.0, 1.0);
 	}` + "\x00"
 )
