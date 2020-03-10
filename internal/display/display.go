@@ -71,7 +71,7 @@ func (g *GLFWDisplay) Init(width int, height int, title string) error {
 		log.Println("OpenGL version", version)
 
 		// Set key handler
-		g.registerKeyboardHandler()
+		//g.registerKeyboardHandler()
 
 		return nil
 	})

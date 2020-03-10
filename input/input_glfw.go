@@ -1,6 +1,6 @@
 package input
 
-import "github.com/go-gl/glfw/v3.0/glfw"
+import "github.com/go-gl/glfw/v3.2/glfw"
 
 var glfwKeyToKey = map[glfw.Key]Key{
 	glfw.Key0: Key0,
@@ -40,5 +40,3 @@ var glfwKeyToKey = map[glfw.Key]Key{
 	glfw.KeyN: KeyN,
 	glfw.KeyM: KeyM,
 }
-
-

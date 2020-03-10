@@ -48,7 +48,7 @@ func (l *GLTFImporter) Import(file string) (*rebound.SceneComponent, error) {
 	return scene, nil
 }
 
-func (l *GLTFImporter) buildNode(n gltf.Node) (*rebound.Node, error) {
+func (l *GLTFImporter) buildNode(n *gltf.Node) (*rebound.Node, error) {
 	var err error
 	// Create a node with defailt values if no values exist
 	node := &rebound.Node{
@@ -86,7 +86,7 @@ func (l *GLTFImporter) buildNode(n gltf.Node) (*rebound.Node, error) {
 	return node, nil
 }
 
-func (l *GLTFImporter) buildMesh(m gltf.Mesh) (*rebound.Mesh, error) {
+func (l *GLTFImporter) buildMesh(m *gltf.Mesh) (*rebound.Mesh, error) {
 	var err error
 	mesh := &rebound.Mesh{
 		Attributes: make([]rebound.Attribute, 0),
@@ -123,7 +123,7 @@ func (l *GLTFImporter) buildMesh(m gltf.Mesh) (*rebound.Mesh, error) {
 	return mesh, nil
 }
 
-func (l *GLTFImporter) buildMaterial(m gltf.Material) (*rebound.Material, error) {
+func (l *GLTFImporter) buildMaterial(m *gltf.Material) (*rebound.Material, error) {
 	material := &rebound.Material{
 		Transparent: m.DoubleSided,
 	}
@@ -159,14 +159,14 @@ func (l *GLTFImporter) loadAccessorF32(index int) []float32 {
 	count := int(accessor.Count) * typeSizes[accessor.Type]
 	out := make([]float32, count, count)
 	switch accessor.ComponentType {
-	case gltf.Byte:
-	case gltf.UnsignedByte:
+	case gltf.ComponentByte:
+	case gltf.ComponentUbyte:
 		for i := 0; i < count; i++ {
 			out[i] = float32(data[i])
 		}
 		break
-	case gltf.Short:
-	case gltf.UnsignedShort:
+	case gltf.ComponentShort:
+	case gltf.ComponentUshort:
 		for i := 0; i < count; i++ {
 			out[i] = float32(data[i*2]) + float32(data[i*2+1])*256
 		}
@@ -185,14 +185,14 @@ func (l *GLTFImporter) loadAccessorU32(index int) []uint32 {
 	count := int(accessor.Count) * typeSizes[accessor.Type]
 	out := make([]uint32, count, count)
 	switch accessor.ComponentType {
-	case gltf.Byte:
-	case gltf.UnsignedByte:
+	case gltf.ComponentByte:
+	case gltf.ComponentUbyte:
 		for i := 0; i < count; i++ {
 			out[i] = uint32(data[i])
 		}
 		break
-	case gltf.Short:
-	case gltf.UnsignedShort:
+	case gltf.ComponentShort:
+	case gltf.ComponentUshort:
 		for i := 0; i < count; i++ {
 			out[i] = uint32(data[i*2]) + uint32(data[i*2+1])*256
 		}
@@ -205,7 +205,7 @@ func (l *GLTFImporter) loadAccessorU32(index int) []uint32 {
 }
 
 // loadAccessorData loads data from an accessor inside the buffer view
-func (l *GLTFImporter) loadAccessorData(accessor gltf.Accessor) []uint8 {
+func (l *GLTFImporter) loadAccessorData(accessor *gltf.Accessor) []uint8 {
 	bv := l.Doc.BufferViews[*accessor.BufferView]
 	buffer := l.Doc.Buffers[bv.Buffer]
 	data := buffer.Data[bv.ByteOffset : bv.ByteOffset+bv.ByteLength]
@@ -217,13 +217,13 @@ func (l *GLTFImporter) loadAccessorData(accessor gltf.Accessor) []uint8 {
 
 // typeSizes returns the size of each type
 var typeSizes = map[gltf.AccessorType]int{
-	gltf.Scalar: 1,
-	gltf.Vec2:   2,
-	gltf.Vec3:   3,
-	gltf.Vec4:   4,
-	gltf.Mat2:   4,
-	gltf.Mat3:   9,
-	gltf.Mat4:   16,
+	gltf.AccessorScalar: 1,
+	gltf.AccessorVec2:   2,
+	gltf.AccessorVec3:   3,
+	gltf.AccessorVec4:   4,
+	gltf.AccessorMat2:   4,
+	gltf.AccessorMat3:   9,
+	gltf.AccessorMat4:   16,
 }
 
 // attTypes returns the Rebound attribute type based on the GLTF attribute string
