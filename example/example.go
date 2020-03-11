@@ -8,6 +8,7 @@ import (
 	"github.com/luukdegram/rebound"
 	"github.com/luukdegram/rebound/ecs"
 	"github.com/luukdegram/rebound/importers"
+	"github.com/luukdegram/rebound/input"
 	"github.com/luukdegram/rebound/shaders"
 )
 
@@ -25,7 +26,7 @@ func init() {
 
 func setup() {
 	gltfImporter := &importers.GLTFImporter{}
-	scene, err := gltfImporter.Import("gltf_objects/avacado.gltf")
+	scene, err := gltfImporter.Import("gltf_objects/SciFiHelmet/glTF/SciFiHelmet.gltf")
 	if err != nil {
 		panic(err)
 	}
@@ -36,18 +37,16 @@ func setup() {
 	}
 
 	entity := ecs.NewEntity(scene, shader)
+
 	renderer := rebound.NewRenderSystem()
-	rotater := &rotationSystem{ecs.NewBaseSystem()}
-	ecs.GetManager().AddSystems(renderer, rotater)
-
 	renderer.AddEntities(entity)
-	//rotater.AddEntities(entity.Children()...)
-
 	renderer.NewCamera(width, height)
-	renderer.NewLight([3]float32{3000, 2000, 2000})
+	renderer.NewLight([3]float32{300, 200, 200})
 	renderer.SetSkyColor(0.5, 0.5, 0.5)
+	renderer.Camera.MoveTo(0, 0.1, 10.5)
 
-	renderer.Camera.MoveTo(0, 0.1, 1.5)
+	rotater := &cameraSystem{ecs.NewBaseSystem(), renderer.Camera, 50}
+	ecs.GetManager().AddSystems(renderer, rotater)
 }
 
 func main() {
@@ -61,17 +60,28 @@ func main() {
 	}
 }
 
-type rotationSystem struct {
+type cameraSystem struct {
 	ecs.BaseSystem
+	Camera *rebound.Camera
+	Speed  float32
 }
 
-func (r *rotationSystem) Update(dt float64) {
-	for _, e := range r.Entities() {
-		rc := e.Component(rebound.RenderComponentName).(*rebound.RenderComponent)
-		rc.Rotation[1] += float32(100 * dt)
+func (cs *cameraSystem) Update(dt float64) {
+	dist := float32(dt) * cs.Speed
+	if input.KeyW.Down() {
+		cs.Camera.Move(0, dist, 0)
+	}
+	if input.KeyS.Down() {
+		cs.Camera.Move(0, -dist, 0)
+	}
+	if input.KeyA.Down() {
+		cs.Camera.Move(dist, 0, 0)
+	}
+	if input.KeyD.Down() {
+		cs.Camera.Move(-dist, 0, 0)
 	}
 }
 
-func (r *rotationSystem) Name() string {
+func (cs *cameraSystem) Name() string {
 	return "RotationSystem"
 }

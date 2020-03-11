@@ -1,6 +1,8 @@
 package input
 
-import "sync"
+import (
+	"sync"
+)
 
 // Keys holds the state of each key
 var Keys keyManager = keyManager{
@@ -46,7 +48,7 @@ func (km *keyManager) Set(key Key, val bool) {
 }
 
 func (km *keyManager) get(key Key) bool {
-	km.mutex.RLock()
+	km.mutex.Lock()
 	defer km.mutex.Unlock()
 	val, ok := km.keys[key]
 	if !ok {

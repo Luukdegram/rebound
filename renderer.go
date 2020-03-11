@@ -122,6 +122,13 @@ func (rs *RenderSystem) Update(dt float64) {
 	})
 }
 
+/* TODO
+// AddEntities adds entities to the Render System, this differs from the base addEntities function as this setups the entities to be batch rendered
+func (rs *RenderSystem) AddEntities(entities ...*ecs.Entity) {
+
+}
+*/
+
 // Name returns the name of the rendering system
 func (rs *RenderSystem) Name() string {
 	return "RenderSystem"
@@ -135,7 +142,12 @@ func (rc *RenderComponent) Name() string {
 //NewCamera creates a new camera and attaches it to the renderer
 func (rs *RenderSystem) NewCamera(width int, height int) {
 	if rs.Camera == nil {
-		rs.Camera = new(Camera)
+		rs.Camera = &Camera{
+			Pos:   mgl32.Vec3{0, 0, 0},
+			Yaw:   0,
+			Pitch: 0,
+			Roll:  0,
+		}
 	}
 
 	pm := NewProjectionMatrix(rs.FOV, float32(width/height), rs.NearPlane, rs.FarPlane)
