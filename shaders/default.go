@@ -14,7 +14,6 @@ const (
 	out vec4 frag_colour;
 	
 	uniform sampler2D textureSampler;
-	uniform sampler2D backgroundTexture;
 	uniform vec3 lightColour;
 	uniform float shineDamper;
 	uniform float reflectivity;
