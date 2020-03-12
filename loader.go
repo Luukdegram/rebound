@@ -68,6 +68,7 @@ func LoadTexture(fileName string) (uint32, error) {
 			gl.RGBA,
 			gl.UNSIGNED_BYTE,
 			gl.Ptr(rgba.Pix))
+		gl.GenerateMipmap(gl.TEXTURE_2D)
 	})
 
 	textures = append(textures, texture)
@@ -119,4 +120,12 @@ func CleanUp() {
 			gl.DeleteTextures(1, &id)
 		}
 	})
+}
+
+// Sampler describes how to render a texture
+type Sampler struct {
+	MagFilter int32
+	MinFilter uint16
+	WrapS     uint16
+	WrapT     uint16
 }

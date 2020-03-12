@@ -4,13 +4,20 @@ import "github.com/go-gl/mathgl/mgl32"
 
 //Camera handles the camera of the scene
 type Camera struct {
-	Pos              mgl32.Vec3
-	Pitch, Yaw, Roll float32
+	Pos        [3]float32
+	ProjectMat [16]float32
+	Pitch,
+	Yaw,
+	Roll,
+	FOV,
+	NearPlane,
+	FarPlane float32
 }
 
 //Move moves the camera around the 3D world given the input
 func (c *Camera) Move(x, y, z float32) {
-	c.Pos = c.Pos.Add([3]float32{x, y, z})
+	var pos mgl32.Vec3 = c.Pos
+	c.Pos = pos.Add([3]float32{x, y, z})
 }
 
 //MoveTo moves the camera to the 3D point

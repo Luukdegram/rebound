@@ -1,7 +1,7 @@
 package display
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
@@ -68,7 +68,17 @@ func (g *GLFWDisplay) Init(width int, height int, title string) error {
 			return err
 		}
 		version := gl.GoStr(gl.GetString(gl.VERSION))
-		log.Println("OpenGL version", version)
+		fmt.Println("OpenGL version", version)
+
+		var nrAttributes int32
+		gl.GetIntegerv(gl.MAX_VERTEX_ATTRIBS, &nrAttributes)
+
+		fmt.Println("Maximum attributes allowed:", nrAttributes)
+
+		var texSlots int32
+		gl.GetIntegerv(gl.MAX_TEXTURE_IMAGE_UNITS, &texSlots)
+
+		fmt.Println("Maximum texture slots: ", texSlots)
 
 		// Set key handler
 		g.registerKeyboardHandler()
@@ -175,8 +185,8 @@ func (g *GLFWDisplay) Close() {
 //Update updates the current screen
 func (g *GLFWDisplay) Update() {
 	thread.Call(func() {
-		glfw.PollEvents()
 		g.w.SwapBuffers()
+		glfw.PollEvents()
 	})
 }
 

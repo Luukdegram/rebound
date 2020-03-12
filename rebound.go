@@ -7,7 +7,6 @@ import (
 	"github.com/luukdegram/rebound/ecs"
 	"github.com/luukdegram/rebound/internal/display"
 	"github.com/luukdegram/rebound/internal/thread"
-	"github.com/luukdegram/rebound/shaders"
 )
 
 //RunOptions allows you to set the initial width, height and title of the application
@@ -54,8 +53,8 @@ func run(options RunOptions, setup func()) error {
 		st = time.Now()
 	}
 
+	CleanUpShaders()
 	CleanUp()
-	shaders.CleanUp()
 	window.Close()
 
 	return nil

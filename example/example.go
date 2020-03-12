@@ -9,7 +9,6 @@ import (
 	"github.com/luukdegram/rebound/ecs"
 	"github.com/luukdegram/rebound/importers"
 	"github.com/luukdegram/rebound/input"
-	"github.com/luukdegram/rebound/shaders"
 )
 
 const (
@@ -31,19 +30,13 @@ func setup() {
 		panic(err)
 	}
 
-	shader, err := shaders.NewShaderComponent(shaders.VertexShader, shaders.FragmentShader)
+	renderer, err := rebound.NewRenderSystem()
 	if err != nil {
 		panic(err)
 	}
-
-	entity := ecs.NewEntity(scene, shader)
-
-	renderer := rebound.NewRenderSystem()
-	renderer.AddEntities(entity)
+	renderer.AddEntities(scene)
 	renderer.NewCamera(width, height)
-	renderer.NewLight([3]float32{300, 200, 200})
-	renderer.SetSkyColor(0.5, 0.5, 0.5)
-	renderer.Camera.MoveTo(0, 0.1, 10.5)
+	renderer.Camera.MoveTo(0, 0.1, 5.5)
 
 	rotater := &cameraSystem{ecs.NewBaseSystem(), renderer.Camera, 50}
 	ecs.GetManager().AddSystems(renderer, rotater)
