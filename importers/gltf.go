@@ -12,8 +12,8 @@ import (
 
 // GLTFImporter loads a gltf file into Rebound to create a visual object.
 type GLTFImporter struct {
-	Dir string
-	Doc *gltf.Document
+	dir string
+	doc *gltf.Document
 }
 
 // Import loads a GLTF file into a Scene.
@@ -22,12 +22,12 @@ func (l *GLTFImporter) Import(file string) (*ecs.Entity, error) {
 	if err != nil {
 		return nil, err
 	}
-	l.Doc = doc
+	l.doc = doc
 
 	dir := path.Dir(file)
 
 	scene := ecs.NewEntity()
-	l.Dir = dir
+	l.dir = dir
 
 	var index int
 	if doc.Scene == nil {
@@ -55,7 +55,7 @@ func (l *GLTFImporter) buildNode(n *gltf.Node) (*ecs.Entity, error) {
 	// Build a mesh
 	if n.Mesh != nil {
 		var mesh *rebound.Mesh
-		if mesh, err = l.buildMesh(l.Doc.Meshes[*n.Mesh]); err != nil {
+		if mesh, err = l.buildMesh(l.doc.Meshes[*n.Mesh]); err != nil {
 			return nil, err
 		}
 		node.AddComponent(&rebound.RenderComponent{
@@ -70,7 +70,7 @@ func (l *GLTFImporter) buildNode(n *gltf.Node) (*ecs.Entity, error) {
 	if len(n.Children) > 0 {
 		for _, child := range n.Children {
 			var childNode *ecs.Entity
-			if childNode, err = l.buildNode(l.Doc.Nodes[child]); err != nil {
+			if childNode, err = l.buildNode(l.doc.Nodes[child]); err != nil {
 				return nil, err
 			}
 			node.AddChild(childNode)
@@ -96,7 +96,7 @@ func (l *GLTFImporter) buildMesh(m *gltf.Mesh) (*rebound.Mesh, error) {
 		// Load the attributes into the mesh such as Normals, texturecoords, etc
 		if len(primitive.Attributes) > 0 {
 			for name, index := range primitive.Attributes {
-				accessor := l.Doc.Accessors[index]
+				accessor := l.doc.Accessors[index]
 				attribute := rebound.Attribute{Type: attTypes[name], Data: l.loadAccessorF32(int(index)), Size: typeSizes[accessor.Type]}
 				mesh.Attributes = append(mesh.Attributes, attribute)
 			}
@@ -104,7 +104,7 @@ func (l *GLTFImporter) buildMesh(m *gltf.Mesh) (*rebound.Mesh, error) {
 
 		// Set the material of a mesh
 		if primitive.Material != nil {
-			mat := l.Doc.Materials[*primitive.Material]
+			mat := l.doc.Materials[*primitive.Material]
 			if mesh.Material, err = l.buildMaterial(mat); err != nil {
 				return nil, err
 			}
@@ -122,8 +122,8 @@ func (l *GLTFImporter) buildMaterial(m *gltf.Material) (*rebound.Material, error
 		Transparent: m.DoubleSided,
 	}
 	if m.PBRMetallicRoughness.BaseColorTexture != nil {
-		texture := l.Doc.Textures[m.PBRMetallicRoughness.BaseColorTexture.Index]
-		texID, err := rebound.LoadTexture(l.Dir + "/" + l.Doc.Images[*texture.Source].URI)
+		texture := l.doc.Textures[m.PBRMetallicRoughness.BaseColorTexture.Index]
+		texID, err := rebound.LoadTexture(l.dir + "/" + l.doc.Images[*texture.Source].URI)
 		if err != nil {
 			return nil, err
 		}
@@ -149,7 +149,7 @@ func (l *GLTFImporter) buildMaterial(m *gltf.Material) (*rebound.Material, error
 
 // loadAccessorF32 loads the float32 values from the buffer
 func (l *GLTFImporter) loadAccessorF32(index int) []float32 {
-	accessor := l.Doc.Accessors[index]
+	accessor := l.doc.Accessors[index]
 	data := l.loadAccessorData(accessor)
 	count := int(accessor.Count) * typeSizes[accessor.Type]
 	out := make([]float32, count, count)
@@ -175,7 +175,7 @@ func (l *GLTFImporter) loadAccessorF32(index int) []float32 {
 
 // loadAccessorU32 loads the uint32 values from the buffer
 func (l *GLTFImporter) loadAccessorU32(index int) []uint32 {
-	accessor := l.Doc.Accessors[index]
+	accessor := l.doc.Accessors[index]
 	data := l.loadAccessorData(accessor)
 	count := int(accessor.Count) * typeSizes[accessor.Type]
 	out := make([]uint32, count, count)
@@ -201,8 +201,8 @@ func (l *GLTFImporter) loadAccessorU32(index int) []uint32 {
 
 // loadAccessorData loads data from an accessor inside the buffer view
 func (l *GLTFImporter) loadAccessorData(accessor *gltf.Accessor) []uint8 {
-	bv := l.Doc.BufferViews[*accessor.BufferView]
-	buffer := l.Doc.Buffers[bv.Buffer]
+	bv := l.doc.BufferViews[*accessor.BufferView]
+	buffer := l.doc.Buffers[bv.Buffer]
 	data := buffer.Data[bv.ByteOffset : bv.ByteOffset+bv.ByteLength]
 	if accessor.ByteOffset != 0 {
 		return data[accessor.ByteOffset:]

@@ -24,7 +24,7 @@ func init() {
 }
 
 func setup() {
-	gltfImporter := &importers.GLTFImporter{}
+	gltfImporter := importers.GLTFImporter{}
 	scene, err := gltfImporter.Import("gltf_objects/SciFiHelmet/glTF/SciFiHelmet.gltf")
 	if err != nil {
 		panic(err)
