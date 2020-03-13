@@ -36,7 +36,7 @@ type RenderSystem struct {
 	drawPolygon bool
 	Camera      *Camera
 	shader      Shader
-	BaseColour  [3]float32
+	BaseColour  Colour
 }
 
 //Attribute is vbo that stores data such as texture coordinates
@@ -62,7 +62,7 @@ func NewRenderSystem() (*RenderSystem, error) {
 	rs := &RenderSystem{
 		BaseSystem:  ecs.NewBaseSystem(),
 		drawPolygon: false,
-		BaseColour:  [3]float32{0, 0, 0},
+		BaseColour:  Colour{0.1, 0.1, 0.1, 1},
 	}
 
 	shader, err := NewBasicShader()
@@ -78,14 +78,14 @@ func NewRenderSystem() (*RenderSystem, error) {
 func (rs *RenderSystem) Update(dt float64) {
 	thread.Call(func() {
 		rs.prepare()
-		Start(rs.shader)
+		startHader(rs.shader)
 		rs.shader.Setup(*rs.Camera)
 		for _, e := range rs.BaseSystem.Entities() {
 			rc := e.Component(RenderComponentName).(*RenderComponent)
 			rs.shader.Render(*rc)
 			render(*rc)
 		}
-		Stop()
+		stopShader()
 	})
 }
 
@@ -118,7 +118,7 @@ func (rs *RenderSystem) NewCamera(width int, height int) {
 	var camera *Camera
 	if rs.Camera == nil {
 		camera = &Camera{
-			Pos:       [3]float32{0, 0, 0},
+			Position:  [3]float32{0, 0, 0},
 			Yaw:       0,
 			Pitch:     0,
 			Roll:      0,
@@ -134,13 +134,23 @@ func (rs *RenderSystem) NewCamera(width int, height int) {
 	rs.Camera = camera
 }
 
+// GetShader returns the shader that is currently applied to the renderer
+func (rs *RenderSystem) GetShader() Shader {
+	return rs.shader
+}
+
+// SetShader sets the shader of the renderer
+func (rs *RenderSystem) SetShader(s Shader) {
+	rs.shader = s
+}
+
 //Prepare cleans the screen for the next draw
 func (rs *RenderSystem) prepare() {
 	gl.Enable(gl.CULL_FACE)
 	gl.CullFace(gl.BACK)
 	gl.Enable(gl.DEPTH_TEST)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-	gl.ClearColor(rs.BaseColour[0], rs.BaseColour[1], rs.BaseColour[2], 1.0)
+	gl.ClearColor(rs.BaseColour.R, rs.BaseColour.G, rs.BaseColour.B, rs.BaseColour.A)
 	if rs.drawPolygon {
 		gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
 	} else {

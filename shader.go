@@ -102,6 +102,151 @@ const (
 		visibility = exp(-pow((dist*density), gradient));
 		visibility = clamp(visibility, 0.0, 1.0);
 	}` + "\x00"
+
+	newVShader = `
+	#version 410 core
+	layout (location = 0) in vec3 position;
+	layout (location = 1) in vec2 textureCoords;
+	layout (location = 2) in vec2 textureCoords2;
+	layout (location = 3) in vec3 normal;
+	layout (location = 4) in vec4 tangents;
+	layout (location = 5) in vec4 color;
+	layout (location = 6) in vec4 joints;
+	layout (location = 7) in vec4 weights;
+
+	out vec3 FragPos;  
+	out vec3 Normal;
+	out vec2 TexCoords;
+	
+	uniform mat4 model;
+	uniform mat4 projection;
+	uniform mat4 view;
+	
+	void main(void) {
+		// Calculate fragment position
+		FragPos = vec3(model * vec4(position, 1.0));
+		Normal = normal;
+
+		// Pass our texture coords
+		TexCoords = textureCoords;
+		
+		// calculate the vector position from the 3D world to 2D view
+		gl_Position = projection * view * vec4(FragPos, 1.0);
+	}` + "\x00"
+
+	newFShader = `
+	#version 410 core
+	out vec4 FragColor;
+
+	in vec2 TexCoords;
+	in vec3 Normal;
+	in vec3 FragPos;
+
+	struct Material {
+		sampler2D diffuse;
+		vec3 specular;
+		float shininess;
+	};
+
+	struct DirLight {
+		vec3 direction;
+		vec3 ambient;
+		vec3 diffuse;
+		vec3 specular;
+	};
+
+	struct PointLight {
+		vec3 position;
+    
+		float constant;
+		float linear;
+		float quadratic;  
+
+		vec3 ambient;
+		vec3 diffuse;
+		vec3 specular;
+	};
+	
+	uniform vec3 lightColour;
+	uniform vec3 viewPos;
+	uniform Material material;
+	uniform DirLight light;
+	uniform int amountLights;
+	
+	#define NR_POINT_LIGHTS 4  
+	uniform PointLight pointLights[NR_POINT_LIGHTS];
+
+	vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
+	vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
+
+	void main()
+	{
+		vec4 texColour = texture(material.diffuse, TexCoords);
+		if (texColour.a < 0.5) {
+			discard;
+		}
+
+		//Calculate the normals
+		vec3 norm = normalize(Normal);
+		
+		// Calculate view direction
+		vec3 viewDir = normalize(viewPos - FragPos);
+		
+		// Calculate directional light 
+		vec3 light = CalcDirLight(light, norm, viewDir);
+
+		int size = amountLights;
+		if (size > 0) 
+		{
+			if (size > NR_POINT_LIGHTS)
+				size = NR_POINT_LIGHTS;
+			// Calculate point lights
+			for(int i = 0; i < size; i++) {
+				light += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
+			}
+		}
+
+		// Set the final result pixel
+		FragColor = vec4(light, 1.0);
+	}
+
+	vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
+	{
+		vec3 lightDir = normalize(-light.direction);
+		// diffuse shading
+		float diff = max(dot(normal, lightDir), 0.0);
+		// specular shading
+		vec3 reflectDir = reflect(-lightDir, normal);
+		float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+		// combine results
+		vec3 ambient  = light.ambient  * vec3(texture(material.diffuse, TexCoords));
+		vec3 diffuse  = light.diffuse  * diff * vec3(texture(material.diffuse, TexCoords));
+		vec3 specular = light.specular * (spec * material.specular);
+		return (ambient + diffuse + specular);
+	}
+
+	vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
+	{
+		vec3 lightDir = normalize(light.position - fragPos);
+		// diffuse shading
+		float diff = max(dot(normal, lightDir), 0.0);
+		// specular shading
+		vec3 reflectDir = reflect(-lightDir, normal);
+		float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+		// attenuation
+		float distance    = length(light.position - fragPos);
+		float attenuation = 1.0 / (light.constant + light.linear * distance + 
+					light.quadratic * (distance * distance));    
+		// combine results
+		vec3 ambient  = light.ambient  * vec3(texture(material.diffuse, TexCoords));
+		vec3 diffuse  = light.diffuse  * diff * vec3(texture(material.diffuse, TexCoords));
+		vec3 specular = light.specular * (spec * material.specular);
+		ambient  *= attenuation;
+		diffuse  *= attenuation;
+		specular *= attenuation;
+		return (ambient + diffuse + specular);
+	}
+	` + "\x00"
 )
 
 var shaderIds []uint32
@@ -120,11 +265,9 @@ type Shader interface {
 
 // BasicShader is the default shader part of the Rebound engine.
 type BasicShader struct {
-	id           uint32
-	ShineDamper  float32
-	Reflectivity float32
-	Light        *Light
-	SkyColour    [3]float32
+	id          uint32
+	SceneLight  *Light
+	PointLights []PointLight
 }
 
 //NewShader returns a new ShaderComponent by compiling the given vertexShader and fragmentShader
@@ -163,20 +306,16 @@ func NewShader(vertexShader, fragmentShader string) (id uint32, err error) {
 
 // NewBasicShader creates a default shader, provided by the Rebound engine
 func NewBasicShader() (*BasicShader, error) {
-	id, err := NewShader(VertexShader, FragmentShader)
+	id, err := NewShader(newVShader, newFShader)
 	if err != nil {
 		return nil, err
 	}
 
 	bs := &BasicShader{
-		id,
-		1000,
-		1,
-		&Light{
-			Position: [3]float32{3000, 2000, 2000},
-			Colour:   [3]float32{1, 1, 1},
+		id: id,
+		SceneLight: &Light{
+			Direction: [3]float32{-0.2, -1.0, -0.3},
 		},
-		[3]float32{0.5, 0.5, 0.5},
 	}
 
 	return bs, nil
@@ -189,28 +328,39 @@ func (bs *BasicShader) ID() uint32 {
 
 // Setup loads variables into the shader pre-entity rendering
 func (bs *BasicShader) Setup(c Camera) {
-	if bs.Light != nil {
-		LoadVec3(bs, "lightPos", bs.Light.Position)
-		LoadVec3(bs, "lightColour", bs.Light.Colour)
+	if bs.SceneLight != nil {
+		LoadVec3(bs, "light.ambient", [3]float32{0.2, 0.2, 0.2})
+		LoadVec3(bs, "light.diffuse", [3]float32{0.5, 0.5, 0.5})
+		LoadVec3(bs, "light.specular", [3]float32{1, 1, 1})
+		LoadVec3(bs, "light.direction", bs.SceneLight.Direction)
 	}
 
-	LoadVec3(bs, "skyColour", bs.SkyColour)
-	LoadMat(bs, "projectionMatrix", c.ProjectMat)
-	LoadMat(bs, "viewMatrix", NewViewMatrix(c))
-	LoadFloat(bs, "shineDamper", bs.ShineDamper)
-	LoadFloat(bs, "reflectivity", bs.Reflectivity)
+	LoadInt(bs, "amountLights", len(bs.PointLights))
+
+	for index, l := range bs.PointLights {
+		prefix := fmt.Sprintf("pointLights[%v].", index)
+		LoadVec3(bs, prefix+"position", l.Position)
+		LoadVec3(bs, prefix+"ambient", l.Ambient)
+		LoadVec3(bs, prefix+"diffuse", l.Diffuse)
+		LoadVec3(bs, prefix+"specular", l.Specular)
+		LoadFloat(bs, prefix+"constant", l.Constant)
+		LoadFloat(bs, prefix+"linear", l.Linear)
+		LoadFloat(bs, prefix+"quadratic", l.Quadratic)
+	}
+
+	LoadVec3(bs, "viewPos", c.Position)
+	LoadMat(bs, "projection", c.ProjectMat)
+	LoadMat(bs, "view", NewViewMatrix(c))
 }
 
 // Render loads variables into the shader based on current RenderComponent
 func (bs *BasicShader) Render(rc RenderComponent) {
-	if rc.Material.Transparent {
-		LoadBool(bs, "useFakeLighting", true)
-	} else {
-		LoadBool(bs, "useFakeLighting", false)
-	}
+	// Set material
+	LoadVec3(bs, "material.specular", [3]float32{0.5, 0.5, 0.5})
+	LoadFloat(bs, "material.shininess", 64)
 
 	tmMat := NewTransformationMatrix(rc.Position, rc.Rotation, rc.Scale)
-	LoadMat(bs, "transformMatrix", tmMat)
+	LoadMat(bs, "model", tmMat)
 }
 
 //GetUniformLocation returns the location of the uniform given, returning the OpenGL id as an int32
@@ -224,10 +374,22 @@ func LoadFloat(s Shader, name string, value float32) {
 	gl.Uniform1f(loc, value)
 }
 
+// LoadInt loads an integer into the shader
+func LoadInt(s Shader, name string, value int) {
+	loc := GetUniformLocation(s, name)
+	gl.Uniform1i(loc, int32(value))
+}
+
 //LoadVec3 loads a uniform Vector into the shader
 func LoadVec3(s Shader, name string, value [3]float32) {
 	loc := GetUniformLocation(s, name)
 	gl.Uniform3f(loc, value[0], value[1], value[2])
+}
+
+// LoadVec4 loads a uniform Vector with 4 elements into the shader
+func LoadVec4(s Shader, name string, value [4]float32) {
+	loc := GetUniformLocation(s, name)
+	gl.Uniform4f(loc, value[0], value[1], value[2], value[3])
 }
 
 //LoadBool loads a boolean into the shader
@@ -246,13 +408,13 @@ func LoadMat(s Shader, name string, value [16]float32) {
 	gl.UniformMatrix4fv(loc, 1, false, &value[0])
 }
 
-//Start starts the shader program
-func Start(s Shader) {
+//startHader starts the shader program
+func startHader(s Shader) {
 	gl.UseProgram(s.ID())
 }
 
-//Stop stops the current shader program
-func Stop() {
+//stopShader stops the current shader program
+func stopShader() {
 	gl.UseProgram(0)
 }
 

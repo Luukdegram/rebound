@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 
 	"github.com/luukdegram/rebound"
@@ -36,10 +37,32 @@ func setup() {
 	}
 	renderer.AddEntities(scene)
 	renderer.NewCamera(width, height)
-	renderer.Camera.MoveTo(0, 0.1, 5.5)
+	renderer.Camera.MoveTo(0, 0, 12.5)
 
-	rotater := &cameraSystem{ecs.NewBaseSystem(), renderer.Camera, 50}
-	ecs.GetManager().AddSystems(renderer, rotater)
+	// Let's create some point lights for in the scene
+	bs := renderer.GetShader().(*rebound.BasicShader)
+	size := 4
+	counter := 0
+	for counter < size {
+		x := rand.Float32()*10 - 5
+		y := rand.Float32()*10 - 5
+		z := rand.Float32()*10 - 5
+		bs.PointLights = append(bs.PointLights, rebound.PointLight{
+			Light: rebound.Light{
+				Position: [3]float32{x, y, z},
+				Ambient:  [3]float32{0.05, 0.05, 0.05},
+				Diffuse:  [3]float32{0.8, 0.8, 0.8},
+				Specular: [3]float32{1, 1, 1},
+			},
+			Constant:  1,
+			Linear:    0.09,
+			Quadratic: 0.032,
+		})
+		counter++
+	}
+
+	inputSystem := &inputSystem{ecs.NewBaseSystem(), renderer.Camera, 50, renderer}
+	ecs.GetManager().AddSystems(renderer, inputSystem)
 }
 
 func main() {
@@ -53,28 +76,32 @@ func main() {
 	}
 }
 
-type cameraSystem struct {
+type inputSystem struct {
 	ecs.BaseSystem
 	Camera *rebound.Camera
 	Speed  float32
+	rs     *rebound.RenderSystem // Solely for demo purposes, you probably wouldn't want this
 }
 
-func (cs *cameraSystem) Update(dt float64) {
-	dist := float32(dt) * cs.Speed
+func (is *inputSystem) Update(dt float64) {
+	dist := float32(dt) * is.Speed
 	if input.KeyW.Down() {
-		cs.Camera.Move(0, dist, 0)
+		is.Camera.Move(0, dist, 0)
 	}
 	if input.KeyS.Down() {
-		cs.Camera.Move(0, -dist, 0)
+		is.Camera.Move(0, -dist, 0)
 	}
 	if input.KeyA.Down() {
-		cs.Camera.Move(dist, 0, 0)
+		is.Camera.Move(dist, 0, 0)
 	}
 	if input.KeyD.Down() {
-		cs.Camera.Move(-dist, 0, 0)
+		is.Camera.Move(-dist, 0, 0)
+	}
+	if input.KeyP.Down() {
+		is.rs.TogglePolygons()
 	}
 }
 
-func (cs *cameraSystem) Name() string {
-	return "RotationSystem"
+func (is *inputSystem) Name() string {
+	return "InputSystem"
 }

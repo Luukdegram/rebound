@@ -16,11 +16,11 @@ import (
 var (
 	vaos     []uint32
 	vbos     []uint32
-	textures []uint32
+	textures map[string]uint32 = make(map[string]uint32)
 )
 
-//LoadToVAO test
-func LoadToVAO(m *Mesh) {
+//LoadMesh creates a new vao and stores the mesh data inside its buffer
+func LoadMesh(m *Mesh) {
 	var id uint32
 	thread.Call(func() {
 		id = createVAO()
@@ -36,6 +36,10 @@ func LoadToVAO(m *Mesh) {
 
 //LoadTexture loads a texture into the GPU
 func LoadTexture(fileName string) (uint32, error) {
+	// Return the texture if we already loaded it before. This increases performance as loading textures is quite intensive.
+	if val, exists := textures[fileName]; exists {
+		return val, nil
+	}
 	file, err := os.Open(fileName)
 	if err != nil {
 		return 0, err
@@ -71,7 +75,8 @@ func LoadTexture(fileName string) (uint32, error) {
 		gl.GenerateMipmap(gl.TEXTURE_2D)
 	})
 
-	textures = append(textures, texture)
+	// Save the new texture into the texture map
+	textures[fileName] = texture
 
 	return texture, nil
 }
@@ -106,6 +111,7 @@ func unbindVAO() {
 }
 
 //CleanUp removes all loaded data from GPU to free up space.
+//As this removes all data, only run this when shutting down.
 func CleanUp() {
 	thread.Call(func() {
 		for _, id := range vaos {
@@ -116,8 +122,9 @@ func CleanUp() {
 			gl.DeleteBuffers(1, &id)
 		}
 
-		for _, id := range textures {
+		for key, id := range textures {
 			gl.DeleteTextures(1, &id)
+			delete(textures, key)
 		}
 	})
 }

@@ -112,7 +112,7 @@ func (l *GLTFImporter) buildMesh(m *gltf.Mesh) (*rebound.Mesh, error) {
 	}
 
 	// Load the mesh into the GPU
-	rebound.LoadToVAO(mesh)
+	rebound.LoadMesh(mesh)
 
 	return mesh, nil
 }

@@ -24,6 +24,6 @@ func NewViewMatrix(camera Camera) mgl32.Mat4 {
 	mat := mgl32.Ident4()
 	rotX := mgl32.HomogRotate3DX(mgl32.DegToRad(camera.Pitch))
 	rotY := mgl32.HomogRotate3DY(mgl32.DegToRad(camera.Yaw))
-	translation := mgl32.Translate3D(-camera.Pos[0], -camera.Pos[1], -camera.Pos[2])
+	translation := mgl32.Translate3D(-camera.Position[0], -camera.Position[1], -camera.Position[2])
 	return mat.Add(translation).Mul4(rotX).Mul4(rotY)
 }
