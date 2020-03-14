@@ -35,8 +35,9 @@ type RenderSystem struct {
 	ecs.BaseSystem
 	drawPolygon bool
 	Camera      *Camera
-	shader      Shader
+	Shader      Shader
 	BaseColour  Colour
+	Skybox      *Skybox
 }
 
 //Attribute is vbo that stores data such as texture coordinates
@@ -70,7 +71,7 @@ func NewRenderSystem() (*RenderSystem, error) {
 		return nil, err
 	}
 
-	rs.shader = shader
+	rs.Shader = shader
 	return rs, nil
 }
 
@@ -78,14 +79,17 @@ func NewRenderSystem() (*RenderSystem, error) {
 func (rs *RenderSystem) Update(dt float64) {
 	thread.Call(func() {
 		rs.prepare()
-		startHader(rs.shader)
-		rs.shader.Setup(*rs.Camera)
+		startShader(rs.Shader)
+		rs.Shader.Setup(*rs.Camera)
 		for _, e := range rs.BaseSystem.Entities() {
 			rc := e.Component(RenderComponentName).(*RenderComponent)
-			rs.shader.Render(*rc)
+			rs.Shader.Render(*rc)
 			render(*rc)
 		}
 		stopShader()
+
+		//as last, render our skybox
+		rs.renderSkybox()
 	})
 }
 
@@ -130,18 +134,8 @@ func (rs *RenderSystem) NewCamera(width int, height int) {
 		camera = rs.Camera
 	}
 
-	camera.ProjectMat = NewProjectionMatrix(camera.FOV, float32(width/height), camera.NearPlane, camera.FarPlane)
+	camera.Projection = NewProjectionMatrix(camera.FOV, float32(width/height), camera.NearPlane, camera.FarPlane)
 	rs.Camera = camera
-}
-
-// GetShader returns the shader that is currently applied to the renderer
-func (rs *RenderSystem) GetShader() Shader {
-	return rs.shader
-}
-
-// SetShader sets the shader of the renderer
-func (rs *RenderSystem) SetShader(s Shader) {
-	rs.shader = s
 }
 
 //Prepare cleans the screen for the next draw
@@ -190,4 +184,24 @@ func render(rc RenderComponent) {
 		gl.DisableVertexAttribArray(uint32(a.Type))
 	}
 	gl.BindVertexArray(0)
+}
+
+// renderSkybox renders a Skybox into the scene
+func (rs *RenderSystem) renderSkybox() {
+	if rs.Skybox == nil {
+		return
+	}
+	sb := rs.Skybox
+	gl.DepthFunc(gl.LEQUAL)
+	startShader(sb.shader)
+	sb.shader.Setup(*rs.Camera)
+	gl.BindVertexArray(sb.mesh.ID)
+	gl.EnableVertexAttribArray(0)
+	gl.ActiveTexture(gl.TEXTURE0)
+	gl.BindTexture(gl.TEXTURE_CUBE_MAP, sb.texture)
+	gl.DrawArrays(gl.TRIANGLES, 0, 36)
+	gl.DisableVertexAttribArray(0)
+	gl.BindVertexArray(0)
+	gl.DepthFunc(gl.LESS)
+	stopShader()
 }

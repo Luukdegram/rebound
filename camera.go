@@ -5,7 +5,7 @@ import "github.com/go-gl/mathgl/mgl32"
 //Camera handles the camera of the scene
 type Camera struct {
 	Position   [3]float32
-	ProjectMat [16]float32
+	Projection [16]float32
 	Pitch,
 	Yaw,
 	Roll,

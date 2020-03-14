@@ -24,7 +24,9 @@ func LoadMesh(m *Mesh) {
 	var id uint32
 	thread.Call(func() {
 		id = createVAO()
-		bindIndicesBuffer(m.Indices)
+		if len(m.Indices) > 0 {
+			bindIndicesBuffer(m.Indices)
+		}
 		for _, attribute := range m.Attributes {
 			storeDataInAttributeList(int(attribute.Type), attribute.Size, attribute.Data)
 		}
@@ -40,20 +42,11 @@ func LoadTexture(fileName string) (uint32, error) {
 	if val, exists := textures[fileName]; exists {
 		return val, nil
 	}
-	file, err := os.Open(fileName)
-	if err != nil {
-		return 0, err
-	}
-	img, _, err := image.Decode(file)
-	if err != nil {
-		return 0, err
-	}
 
-	rgba := image.NewRGBA(img.Bounds())
-	if rgba.Stride != rgba.Rect.Size().X*4 {
-		return 0, fmt.Errorf("unsupported stride")
+	rgba, err := loadTextureData(fileName)
+	if err != nil {
+		return 0, err
 	}
-	draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
 	var texture uint32
 	thread.Call(func() {
 		gl.GenTextures(1, &texture)
@@ -79,6 +72,63 @@ func LoadTexture(fileName string) (uint32, error) {
 	textures[fileName] = texture
 
 	return texture, nil
+}
+
+// LoadCubeMap loads a cubemap into a GPU texture, returns the index of the texture as an unsigned 32bit integer.
+func LoadCubeMap(faces [6]string) (uint32, error) {
+	data := make([]*image.RGBA, len(faces))
+	for index := 0; index < len(faces); index++ {
+		rgba, err := loadTextureData(faces[index])
+		if err != nil {
+			return 0, err
+		}
+		data[index] = rgba
+	}
+
+	var texture uint32
+	thread.Call(func() {
+		gl.GenTextures(1, &texture)
+		gl.BindTexture(gl.TEXTURE_CUBE_MAP, texture)
+		for index := 0; index < len(data); index++ {
+			gl.TexImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X+uint32(index),
+				0,
+				gl.RGBA,
+				int32(data[index].Rect.Size().X),
+				int32(data[index].Rect.Size().Y),
+				0,
+				gl.RGBA,
+				gl.UNSIGNED_BYTE,
+				gl.Ptr(data[index].Pix))
+		}
+
+		gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+		gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+		gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+		gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+		gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE)
+	})
+
+	return texture, nil
+
+}
+
+func loadTextureData(fileName string) (*image.RGBA, error) {
+	file, err := os.Open(fileName)
+	if err != nil {
+		return nil, err
+	}
+	img, _, err := image.Decode(file)
+	if err != nil {
+		return nil, err
+	}
+
+	rgba := image.NewRGBA(img.Bounds())
+	if rgba.Stride != rgba.Rect.Size().X*4 {
+		return nil, fmt.Errorf("unsupported stride")
+	}
+	draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
+
+	return rgba, nil
 }
 
 func createVAO() uint32 {
@@ -114,18 +164,15 @@ func unbindVAO() {
 //As this removes all data, only run this when shutting down.
 func CleanUp() {
 	thread.Call(func() {
-		for _, id := range vaos {
-			gl.DeleteVertexArrays(1, &id)
-		}
-
-		for _, id := range vbos {
-			gl.DeleteBuffers(1, &id)
-		}
-
-		for key, id := range textures {
+		gl.DeleteVertexArrays(int32(len(vaos)), &vaos[0])
+		gl.DeleteBuffers(int32(len(vbos)), &vbos[0])
+		for _, id := range textures {
 			gl.DeleteTextures(1, &id)
-			delete(textures, key)
 		}
+
+		vaos = []uint32{}
+		vbos = []uint32{}
+		textures = make(map[string]uint32)
 	})
 }
 

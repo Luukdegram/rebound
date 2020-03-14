@@ -15,15 +15,23 @@ func NewTransformationMatrix(trans [3]float32, rot [3]float32, scale [3]float32)
 }
 
 //NewProjectionMatrix returns a new projection matrix
-func NewProjectionMatrix(angle, aspect, nearPlane, farPlane float32) mgl32.Mat4 {
+func NewProjectionMatrix(angle, aspect, nearPlane, farPlane float32) [16]float32 {
 	return mgl32.Perspective(mgl32.DegToRad(angle), aspect, nearPlane, farPlane)
 }
 
 //NewViewMatrix returns a new view matrix
-func NewViewMatrix(camera Camera) mgl32.Mat4 {
+func NewViewMatrix(camera Camera) [16]float32 {
 	mat := mgl32.Ident4()
 	rotX := mgl32.HomogRotate3DX(mgl32.DegToRad(camera.Pitch))
 	rotY := mgl32.HomogRotate3DY(mgl32.DegToRad(camera.Yaw))
 	translation := mgl32.Translate3D(-camera.Position[0], -camera.Position[1], -camera.Position[2])
 	return mat.Add(translation).Mul4(rotX).Mul4(rotY)
+}
+
+//NewViewMatrixNoTranslation returns a view matrix without the translation axis
+func NewViewMatrixNoTranslation(camera Camera) [16]float32 {
+	mat := mgl32.Ident4()
+	rotX := mgl32.HomogRotate3DX(mgl32.DegToRad(camera.Pitch))
+	rotY := mgl32.HomogRotate3DY(mgl32.DegToRad(camera.Yaw))
+	return mat.Mul4(rotX).Mul4(rotY)
 }

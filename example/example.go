@@ -24,9 +24,51 @@ func init() {
 	}
 }
 
+type inputSystem struct {
+	ecs.BaseSystem
+	Camera *rebound.Camera
+	Speed  float32
+	rs     *rebound.RenderSystem // Solely for demo purposes, you probably wouldn't want this
+}
+
+func (is *inputSystem) Update(dt float64) {
+	dist := float32(dt) * is.Speed
+	if input.KeyW.Down() {
+		is.Camera.Move(0, dist, 0)
+	}
+	if input.KeyS.Down() {
+		is.Camera.Move(0, -dist, 0)
+	}
+	if input.KeyA.Down() {
+		is.Camera.Move(dist, 0, 0)
+	}
+	if input.KeyD.Down() {
+		is.Camera.Move(-dist, 0, 0)
+	}
+	if input.KeyP.Down() {
+		is.rs.TogglePolygons()
+	}
+}
+
+func (is *inputSystem) Name() string {
+	return "InputSystem"
+}
+
 func setup() {
 	gltfImporter := importers.GLTFImporter{}
 	scene, err := gltfImporter.Import("gltf_objects/SciFiHelmet/glTF/SciFiHelmet.gltf")
+	if err != nil {
+		panic(err)
+	}
+
+	skybox, err := rebound.NewSkybox([6]string{
+		"skybox/right.png",
+		"skybox/left.png",
+		"skybox/top.png",
+		"skybox/bottom.png",
+		"skybox/back.png",
+		"skybox/front.png",
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -38,9 +80,10 @@ func setup() {
 	renderer.AddEntities(scene)
 	renderer.NewCamera(width, height)
 	renderer.Camera.MoveTo(0, 0, 12.5)
+	renderer.Skybox = skybox
 
 	// Let's create some point lights for in the scene
-	bs := renderer.GetShader().(*rebound.BasicShader)
+	bs := renderer.Shader.(*rebound.BasicShader)
 	size := 4
 	counter := 0
 	for counter < size {
@@ -74,34 +117,4 @@ func main() {
 	if err := rebound.Run(options, setup); err != nil {
 		fmt.Println(err)
 	}
-}
-
-type inputSystem struct {
-	ecs.BaseSystem
-	Camera *rebound.Camera
-	Speed  float32
-	rs     *rebound.RenderSystem // Solely for demo purposes, you probably wouldn't want this
-}
-
-func (is *inputSystem) Update(dt float64) {
-	dist := float32(dt) * is.Speed
-	if input.KeyW.Down() {
-		is.Camera.Move(0, dist, 0)
-	}
-	if input.KeyS.Down() {
-		is.Camera.Move(0, -dist, 0)
-	}
-	if input.KeyA.Down() {
-		is.Camera.Move(dist, 0, 0)
-	}
-	if input.KeyD.Down() {
-		is.Camera.Move(-dist, 0, 0)
-	}
-	if input.KeyP.Down() {
-		is.rs.TogglePolygons()
-	}
-}
-
-func (is *inputSystem) Name() string {
-	return "InputSystem"
 }

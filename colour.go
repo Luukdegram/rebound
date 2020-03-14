@@ -8,7 +8,7 @@ type Colour struct {
 	A float32
 }
 
-// ToSlice creates a slice, where the first element represents Red and the last element the Alpha
+// ToSlice creates a slice, where the first element represents Red and the last element the Alpha channel
 func (c *Colour) ToSlice() [4]float32 {
 	return [4]float32{c.R, c.G, c.B, c.A}
 }
