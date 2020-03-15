@@ -10,10 +10,15 @@ var Keys keyManager = keyManager{
 	keys:  make(map[Key]bool),
 }
 
-// MouseButtons holds the state of each mouse button
-var MouseButtons mouseManager = mouseManager{
+// Mouse holds the state of each mouse button
+var Mouse mouseManager = mouseManager{
 	mutex:   sync.RWMutex{},
 	buttons: make(map[MouseButton]bool),
+}
+
+// Cursor represents the cursor on the screen.
+var Cursor cursorManager = cursorManager{
+	mutex: sync.RWMutex{},
 }
 
 // Manager handles the state of input
@@ -32,6 +37,14 @@ type keyManager struct {
 type mouseManager struct {
 	mutex   sync.RWMutex
 	buttons map[MouseButton]bool
+}
+
+type cursorManager struct {
+	mutex sync.RWMutex
+	x,
+	y,
+	lastX,
+	lastY float32
 }
 
 //Key is type to hold a keyboard key regardless what window manager is used
@@ -76,6 +89,54 @@ func (mm *mouseManager) get(button MouseButton) bool {
 	return val
 }
 
+// Set sets the cursor position
+func (c *cursorManager) Set(x, y float32) {
+	c.mutex.Lock()
+	c.lastX, c.lastY = c.x, c.y
+	c.x, c.y = x, y
+	c.mutex.Unlock()
+}
+
+// X returns the X position of the cursor
+func (c *cursorManager) X() (x float32) {
+	c.mutex.RLock()
+	x = c.x
+	c.mutex.RUnlock()
+	return
+}
+
+// Y returns the Y position of the cursor
+func (c *cursorManager) Y() (y float32) {
+	c.mutex.RLock()
+	y = c.y
+	c.mutex.RUnlock()
+	return
+}
+
+// Xoffset returns the offset of X compared to last set
+func (c *cursorManager) Xoffset() (x float32) {
+	c.mutex.RLock()
+	x = c.x - c.lastX
+	c.mutex.RUnlock()
+	return
+}
+
+// Xoffset returns the offset of X compared to last set
+func (c *cursorManager) Yoffset() (y float32) {
+	c.mutex.RLock()
+	y = c.y - c.lastY
+	c.mutex.RUnlock()
+	return
+}
+
+// Pos returns the current X and Y value of the cursor's position
+func (c *cursorManager) Pos() (x, y float32) {
+	c.mutex.RLock()
+	x, y = c.x, c.y
+	c.mutex.RUnlock()
+	return
+}
+
 // Up returns true if the key is currently not pressed
 func (k Key) Up() bool {
 	return !Keys.get(k)
@@ -84,6 +145,16 @@ func (k Key) Up() bool {
 // Down returns true if the key is currently being pressed
 func (k Key) Down() bool {
 	return Keys.get(k)
+}
+
+// Up returns true if the mousebutton is currently not pressed
+func (mb MouseButton) Up() bool {
+	return !Mouse.get(mb)
+}
+
+// Down returns false if the mousebutton is currently not pressed
+func (mb MouseButton) Down() bool {
+	return Mouse.get(mb)
 }
 
 //Provide users with a generic set of Keys that will implement the keys of the selected display manager

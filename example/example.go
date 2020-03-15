@@ -34,19 +34,29 @@ type inputSystem struct {
 func (is *inputSystem) Update(dt float64) {
 	dist := float32(dt) * is.Speed
 	if input.KeyW.Down() {
-		is.Camera.Move(0, dist, 0)
+		is.Camera.Move(0, 0, -dist)
 	}
 	if input.KeyS.Down() {
-		is.Camera.Move(0, -dist, 0)
+		is.Camera.Move(0, 0, dist)
 	}
 	if input.KeyA.Down() {
-		is.Camera.Move(dist, 0, 0)
+		is.Camera.Move(-dist, 0, 0)
 	}
 	if input.KeyD.Down() {
-		is.Camera.Move(-dist, 0, 0)
+		is.Camera.Move(dist, 0, 0)
 	}
 	if input.KeyP.Down() {
 		is.rs.TogglePolygons()
+	}
+	if input.KeyQ.Down() {
+		is.Camera.Move(0, dist, 0)
+	}
+	if input.KeyE.Down() {
+		is.Camera.Move(0, -dist, 0)
+	}
+	if input.RightMouseButton.Down() {
+		is.Camera.Yaw += (input.Cursor.Xoffset() * dist)
+		is.Camera.Pitch += (input.Cursor.Yoffset() * dist)
 	}
 }
 
@@ -104,7 +114,7 @@ func setup() {
 		counter++
 	}
 
-	inputSystem := &inputSystem{ecs.NewBaseSystem(), renderer.Camera, 50, renderer}
+	inputSystem := &inputSystem{ecs.NewBaseSystem(), renderer.Camera, 150, renderer}
 	ecs.GetManager().AddSystems(renderer, inputSystem)
 }
 

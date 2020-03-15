@@ -82,6 +82,10 @@ func (g *GLFWDisplay) Init(width int, height int, title string) error {
 
 		// Set key handler
 		g.registerKeyboardHandler()
+		// Set mouse button handler
+		g.registerMouseButtonHandler()
+		// Set cursor position handler
+		g.registerCurserPosHandler()
 
 		return nil
 	})
@@ -137,7 +141,7 @@ type ScrollCallback func(x, y float64)
 
 //RegisterKeyboardHandler registers a callback action to a certain key
 func (g *GLFWDisplay) registerKeyboardHandler() {
-	fn := func(window *glfw.Window, glfwKey glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+	g.w.SetKeyCallback(func(window *glfw.Window, glfwKey glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 		if action == glfw.Press {
 			input.Keys.Set(glfwKeyToKey[glfwKey], true)
 		}
@@ -145,20 +149,18 @@ func (g *GLFWDisplay) registerKeyboardHandler() {
 		if action == glfw.Release {
 			input.Keys.Set(glfwKeyToKey[glfwKey], false)
 		}
-	}
-	g.w.SetKeyCallback(fn)
+	})
 }
 
 func (g *GLFWDisplay) registerMouseButtonHandler() {
-	fn := func(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mod glfw.ModifierKey) {
+	g.w.SetMouseButtonCallback(func(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mod glfw.ModifierKey) {
 		if action == glfw.Press {
-			input.MouseButtons.Set(glfwMouseButtonToMouseButton[button], true)
+			input.Mouse.Set(glfwMouseButtonToMouseButton[button], true)
 		}
 		if action == glfw.Release {
-			input.MouseButtons.Set(glfwMouseButtonToMouseButton[button], false)
+			input.Mouse.Set(glfwMouseButtonToMouseButton[button], false)
 		}
-	}
-	g.w.SetMouseButtonCallback(fn)
+	})
 }
 
 //RegisterScrollWheelHandler registers a callback action that triggers when the scrollwheel turns
@@ -167,6 +169,12 @@ func (g *GLFWDisplay) RegisterScrollWheelHandler(callback ScrollCallback) {
 		callback(x, y)
 	}
 	g.w.SetScrollCallback(fn)
+}
+
+func (g *GLFWDisplay) registerCurserPosHandler() {
+	g.w.SetCursorPosCallback(func(w *glfw.Window, xpos, ypos float64) {
+		input.Cursor.Set(float32(xpos), float32(ypos))
+	})
 }
 
 //ShouldClose returns a boolean wether the window should close or not.
