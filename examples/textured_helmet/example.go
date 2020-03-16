@@ -18,7 +18,7 @@ const (
 )
 
 func init() {
-	err := os.Chdir("assets")
+	err := os.Chdir("../assets")
 	if err != nil {
 		log.Panicln("os.Chdir:", err)
 	}
