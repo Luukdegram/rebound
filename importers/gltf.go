@@ -90,7 +90,7 @@ func (l *GLTFImporter) buildMesh(m *gltf.Mesh) (*rebound.Mesh, error) {
 	for _, primitive := range m.Primitives {
 		// Load the indices into the mesh
 		if primitive.Indices != nil {
-			mesh.Indices = append(mesh.Indices, l.loadAccessorU32(int(*primitive.Indices))...)
+			mesh.Indices = l.loadAccessorU32(int(*primitive.Indices))
 		}
 
 		// Load the attributes into the mesh such as Normals, texturecoords, etc
